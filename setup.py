@@ -14,6 +14,10 @@ setup(
     long_description_content_type='text/markdown',  # Specifies the long desc is in Markdown
     url='https://github.com/anthonyb8/quantAnalytics.git',  # Project home page or repository URL
     packages=find_packages(),  # Automatically discover all packages and subpackages
+    include_package_data=True,  # Include package data as specified in MANIFEST.in
+    package_data={
+        'quantAnalytics': ['styles.css'],  # Include styles.css in the package
+    },
     install_requires=requirements,
     classifiers=[
         'Programming Language :: Python :: 3',

@@ -1,1 +1,5 @@
 venv/
+build/
+*.egg-info
+*.pdf
+*.html
