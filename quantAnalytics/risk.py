@@ -234,4 +234,63 @@ class RiskAnalysis:
             }
         except Exception as e:
             raise Exception(f"Error calculating annualized volatility and z-scores : {e}")
+
+    @staticmethod
+    def display_volatility_zscore_results(volatility_zscore_results:dict, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
+        """
+        Display the volatility Z-score analysis results.
+
+        This function formats the volatility Z-score analysis results into a human-readable format, either as a plain text table or an HTML table.
+        It includes annualized volatility, annualized mean return, and a series of Z-scores, providing a comprehensive view of volatility dynamics.
+
+        Parameters:
+        - volatility_zscore_results (dict): A dictionary containing the volatility Z-score results.
+        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
+        - to_html (bool): If True, the results are formatted as an HTML string. If False, they are formatted as plain text.
+        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
+
+        Returns:
+        - str: The formatted volatility Z-score results as a string (plain text or HTML).
+        """
+        # Convert validation results to DataFrame
+        data = []
+        row = {'Annualized Volatility': volatility_zscore_results['Annualized Volatility'], 'Annualized Mean Return': round(volatility_zscore_results['Annualized Mean Return'],6)}
+       
+        i = 1
+        for key, value in volatility_zscore_results['Z-Scores (Annualized)'].items():
+            row.update({f'Z-score for {i} SD (annualized)': value})
+            i+=1
+        data.append(row)
+        df = pd.DataFrame(data)
+
+        title = "zscore volatility Results"
+        footer = "** Note: Z-scores provide a statistical measure of the volatility's deviation from its mean, with larger absolute values indicating more significant deviations."
+        
+        if to_html:
+            # Define the base indentation as a string of spaces
+            base_indent = "    " * indent
+            next_indent = "    " * (indent + 1)
+            
+            # Convert DataFrame to HTML table and add explanation
+            html_table = df.to_html(index=False, border=1)
+            html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
+
+            html_title = f"{next_indent}<h4>{title}</h4>\n"
+            html_footer = f"{next_indent}<p class='footnote'>{footer}</p>\n"
+            html_output = f"{base_indent}<div class='beta_analysis'>\n{html_title}{html_table}\n{html_footer}{base_indent}</div>"
+            
+            return html_output
+        
+        else:
+            output = (
+                f"\n{title}\n"
+                f"{'=' * len(title)}\n"
+                f"{df.to_string(index=False)}\n"
+                f"{footer}"
+            )
+            if print_output:
+                print(output)
+            else:
+                return output
+
     

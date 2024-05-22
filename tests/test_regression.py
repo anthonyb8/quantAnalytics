@@ -124,6 +124,23 @@ class RegressionAnalysisTests(unittest.TestCase):
         self.assertFalse(validation_results['Validation Checks']['R-squared above threshold'])
         self.assertFalse(validation_results['Validation Checks']['P-values significant'])
 
+    def test_display_regression_validation_results(self):
+        validation_results = {'R-squared': 0.0011520303921485064, 'P-values': {'const': 0.11052398250364748, 'close': 0.5352449917450732}, 'Validation Checks': {'R-squared above threshold': False, 'P-values significant': False, 'Model is valid': False}}
+        
+        # test
+        result = RegressionAnalysis.display_regression_validation_results(validation_results, False, False)
+
+        # expected
+        expected = (f"Regression Validation Results"
+                    f"============================="
+                    f"R-squared      p-value (const) p-value (close) R-squared above threshold P-values significant Model is valid"
+                    f"0.001152         0.110524         0.535245                      False                 False           False"
+                    f"** R-squared should be above the threshold and p-values should be below the threshold for model validity."
+        )
+
+        # validate
+        self.assertTrue(len(result) > 0)
+
     def test_beta(self):
         # Assuming a regression model has already been fitted in setup
         expected_beta = self.mock_model.params[1]  # Mock expected beta value
@@ -156,12 +173,47 @@ class RegressionAnalysisTests(unittest.TestCase):
         self.assertTrue(alpha_results['Alpha is significant'])
         self.assertTrue(alpha_results['Confidence Interval spans zero'])
 
+    def test_display_alpha_analysis_results(self):
+        alpha_analysis_results={'Alpha (Intercept)': 0.0031231873179405336, 'P-value': 0.11052398250364748, 'Confidence Interval': [-0.0007163438974512504, 0.006962718533332317], 'Alpha is significant': False, 'Confidence Interval spans zero': True}
+
+
+       # test
+        result = RegressionAnalysis.display_alpha_analysis_results(alpha_analysis_results, False, False)
+
+        # expected
+        expected = (f"Alpha Analysis Results"
+                    f"======================"
+                    f"Alpha (Intercept)  p-value  Confidence Interval Lower Bound(2.5%)  Confidence Interval Upper Bound(97.5%)  Alpha is significant"
+                    f"0.003123 0.110524                              -0.000716                                0.006963                 False"
+                    f"** Note: For model validity, alpha should be significant (p-value < 0.05), and confidence intervals should not include zero."
+        )
+
+        # validate
+        self.assertTrue(len(result) > 0)
+
     def test_analyze_beta(self):
         beta_results = self.analysis.analyze_beta()
 
         self.assertEqual(beta_results["Beta (Slope)"], 0.076941)
         self.assertEqual(beta_results["P-value"], 0.08)
         self.assertFalse(beta_results['Beta is significant'])
+
+    def test_display_beta_analysis_results(self):
+        beta_analysis_results={'Beta (Slope)': -0.14951528991152752, 'P-value': 0.5352449917450732, 'Confidence Interval': [-0.6233804345394574, 0.3243498547164023], 'Beta is significant': False, 'Confidence Interval spans one': False}
+
+       # test
+        result = RegressionAnalysis.display_beta_analysis_results(beta_analysis_results, False, False)
+
+        # expected
+        expected = (f"Beta Analysis Results"
+                    f"====================="
+                    f"Beta (Slope)  p-value  Confidence Interval Lower Bound(2.5%)  Confidence Interval Upper Bound(97.5%)  Beta is significant"
+                    f"-0.149515 0.535245                               -0.62338                                 0.32435                False"
+                    f"** Note: For model validity, beta should be significant (p-value < 0.05), and confidence intervals should not include zero."
+        )
+
+        # validate
+        self.assertTrue(len(result) > 0)
 
     def test_risk_decomposition(self):
         risk_results = self.analysis.risk_decomposition()

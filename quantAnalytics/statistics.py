@@ -229,9 +229,9 @@ class TimeseriesTests:
             html_table = adf_df.to_html(index=False, border=1)
             html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
 
-            html_title = f"{next_indent}<h2>{title}</h2>\n"
-            html_footer = f"{next_indent}<p>{footer}</p>\n"
-            html_output = f"{base_indent}<div>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
+            html_title = f"{next_indent}<h4>{title}</h4>\n"
+            html_footer = f"{next_indent}<p class='footnote'>{footer}</p>\n"
+            html_output = f"{base_indent}<div class='adf_test'>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
         
             return html_output
         
@@ -394,9 +394,9 @@ class TimeseriesTests:
             html_table = kpss_df.to_html(index=False, border=1)
             html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
 
-            html_title = f"{next_indent}<h2>{title}</h2>\n"
-            html_footer = f"{next_indent}<p>{footer}</p>\n"
-            html_output = f"{base_indent}<div>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
+            html_title = f"{next_indent}<h4>{title}</h4>\n"
+            html_footer = f"{next_indent}<p class='footnote'>{footer}</p>\n"
+            html_output = f"{base_indent}<div class='kpss_test'>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
 
             return html_output
         
@@ -503,9 +503,9 @@ class TimeseriesTests:
             html_table = pp_df.to_html(index=False, border=1)
             html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
 
-            html_title = f"{next_indent}<h2>{title}</h2>\n"
-            html_footer = f"{next_indent}<p>{footer}</p>\n"
-            html_output = f"{base_indent}<div>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
+            html_title = f"{next_indent}<h4>{title}</h4>\n"
+            html_footer = f"{next_indent}<p class='footnote'>{footer}</p>\n"
+            html_output = f"{base_indent}<div class='phillips_perron_test'>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
         
             return html_output
         
@@ -730,7 +730,7 @@ class TimeseriesTests:
         return output, num_cointegrations
     
     @staticmethod
-    def display_johansen_results(johansen_results:dict, num_cointegrations:int, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
+    def display_johansen_results(johansen_results:dict, num_cointegrations:int, k_ar_diff:int, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
         """
         Display the results of the Johansen test.
 
@@ -768,7 +768,7 @@ class TimeseriesTests:
             axis=1
         )
         
-        title = "Johansen Cointegration Test Results"
+        title = f"Johansen Cointegration Test : (Ideal lag = {k_ar_diff})"
         header = f"Number of cointerated realtionships : {num_cointegrations}"
         footer = f"** IF Trace Statistic > Critical Value AND Max Eigenvalue > Critical Value then Reject Null of at most r cointegrating relationships.(r=0 in first test)"
 
@@ -783,9 +783,9 @@ class TimeseriesTests:
 
             # Construct the complete HTML output with proper indentation
             html_title = f"{next_indent}<h2>{title}</h2>\n"
-            html_header = f"{next_indent}<p>{header}</p>\n"
-            html_footer = f"{next_indent}<p>{footer}</p>\n"
-            html_output = f"{base_indent}<div>\n{html_title}{html_header}{html_table_indented}\n{html_footer}{base_indent}</div>"
+            # html_header = f"{next_indent}<p>{header}</p>\n"
+            html_footer = f"{next_indent}<p class='footnote'>{footer}</p>\n"
+            html_output = f"{base_indent}<div class='johansen_test'>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
         
             return html_output
         

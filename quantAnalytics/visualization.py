@@ -36,6 +36,9 @@ class Visualizations:
         # Add grid
         ax.grid(True)
 
+        # Adjust layout to minimize white space
+        plt.tight_layout()
+
         # Return the figure object
         return fig
 
@@ -82,6 +85,9 @@ class Visualizations:
 
             # Customize x-axis labels for readability
             plt.xticks(rotation=45)
+
+            # Adjust layout to minimize white space
+            plt.tight_layout()
 
             # Return the figure object
             return fig
@@ -130,6 +136,9 @@ class Visualizations:
 
         # Add grid
         ax.grid(True)
+
+        # Adjust layout to minimize white space
+        plt.tight_layout()
 
         return fig
 

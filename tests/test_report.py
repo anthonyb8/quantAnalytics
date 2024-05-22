@@ -40,12 +40,19 @@ class TestReportGenerator(unittest.TestCase):
             os.remove(self.pdf_path)
 
     # basic validation
-    def test_add_title(self):
+    def test_add_main_title(self):
         # test
-        self.report.add_title("Test Title")
+        self.report.add_main_title("Test Title")
         
         # validate
-        self.assertIn("<h2>Test Title</h2>", self.report.html_content)
+        self.assertIn("<h1>Test Title</h1>", self.report.html_content)
+
+    def test_add_section_title(self):
+        # test
+        self.report.add_section_title("Test Title")
+        
+        # validate
+        self.assertIn("<h3>Test Title</h3>", self.report.html_content)
     
     def test_add_text(self):
         html_content = "<p>Test HTML Content</p>"
@@ -84,7 +91,16 @@ class TestReportGenerator(unittest.TestCase):
         # Test
         self.report.add_dataframe(df, "DataFrame Title")
         # Validate
-        self.assertIn("<h2>DataFrame Title</h2>", self.report.html_content)
+        self.assertIn("<h4>DataFrame Title</h4>", self.report.html_content)
+        self.assertIn("Column1", self.report.html_content)
+        self.assertIn("1", self.report.html_content)
+
+
+    def test_add_dataframe_not_title(self):
+        df = pd.DataFrame({'Column1': [1, 2], 'Column2': [3, 4]})
+        # Test
+        self.report.add_dataframe(df)
+        # Validate
         self.assertIn("Column1", self.report.html_content)
         self.assertIn("1", self.report.html_content)
 
@@ -103,9 +119,13 @@ class TestReportGenerator(unittest.TestCase):
         self.report._generate_pdf.assert_called_once()
     
     # type constraints
-    def test_add_title_type_check(self):
+    def test_add_main_title_type_check(self):
         with self.assertRaises(TypeError):
-            self.report.add_title(9999)
+            self.report.add_main_title(9999)
+
+    def test_add_section_title_type_check(self):
+        with self.assertRaises(TypeError):
+            self.report.add_section_title(9999)
 
     def test_add_text_type_check(self):
         with self.assertRaises(TypeError):
@@ -182,7 +202,7 @@ class TestReportGenerator(unittest.TestCase):
         dates, data = generate_random_data()
 
         # Add Section and Plot
-        report.add_title("Random Data Visualization")
+        report.add_main_title("Random Data Visualization")
         report.add_image(line_plot, 0, x=dates, y=data, title="Random Data Line Plot", x_label="Date", y_label="Value")
 
         # Add a Random Data Table
@@ -190,7 +210,7 @@ class TestReportGenerator(unittest.TestCase):
         report.add_dataframe(random_df, "Random Data Table")
 
         # Add Another Section and Plot
-        report.add_title("Another Random Data Visualization")
+        report.add_section_title("Another Random Data Visualization")
         more_dates, more_data = generate_random_data()
         report.add_image(line_plot, 0, x=more_dates, y=more_data, title="More Random Data Line Plot", x_label="Date", y_label="Value")
 

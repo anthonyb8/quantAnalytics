@@ -57,10 +57,9 @@ class ReportGenerator:
     {self.css_link}
 </head>
 <body>
-    <h1>Backtest Report</h1>
     """)
    
-    def add_title(self, title:str) -> None:
+    def add_main_title(self, title:str) -> None:
         """
         Adds a section title to the report.
 
@@ -70,7 +69,19 @@ class ReportGenerator:
         if not isinstance(title, str):
             raise TypeError(f"Expected title to be a string, but got {type(title).__name__}")
 
-        self.html_content += f"<h2>{title}</h2>\n"
+        self.html_content += f"<h1>{title}</h1>\n"
+   
+    def add_section_title(self, title:str) -> None:
+        """
+        Adds a section title to the report.
+
+        Parameters:
+        - title (str): The title text to be added as an HTML <h2> element.
+        """
+        if not isinstance(title, str):
+            raise TypeError(f"Expected title to be a string, but got {type(title).__name__}")
+
+        self.html_content += f"<h3>{title}</h3>\n"
     
     def add_text(self, html:str) -> None:
         """
@@ -186,7 +197,7 @@ class ReportGenerator:
         except Exception as e:
             raise ValueError(f"Failed to create plot: {e}")
 
-    def add_dataframe(self, df:pd.DataFrame, title:str=None) -> None:
+    def add_dataframe(self, df:pd.DataFrame, title:str=None, index:bool=True) -> None:
         """
         Adds a pandas DataFrame as an HTML table to the report. Optionally includes a title for the DataFrame.
 
@@ -202,8 +213,9 @@ class ReportGenerator:
             raise TypeError(f"Expected title to be a string, but got {type(title).__name__}")
 
         if title:
-            self.add_title(title)
-        html_table = df.to_html(index=False, border=1)
+            self.html_content  += f"<h4>{title}</h4>\n"
+
+        html_table = df.to_html(index=index, border=1)
         self.html_content += html_table + "\n"
 
     def complete_report(self) -> None:

@@ -122,6 +122,62 @@ class RegressionAnalysis:
 
         return validation_results
 
+    @staticmethod
+    def display_regression_validation_results(validation_results:dict, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
+        """
+        Display the validation results of a regression model.
+
+        This function formats regression validation results into a human-readable format, either as a plain text table or an HTML table.
+        It includes an interpretation of R-squared and p-values to aid in understanding the model's validity.
+
+        Parameters:
+        - validation_results (dict): A dictionary containing the validation results of a regression model.
+        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
+        - to_html (bool): If True, the results are formatted as an HTML string. If False, the results are formatted as plain text.
+        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
+
+        Returns:
+        - str: The formatted regression validation results as a string (plain text or HTML).
+        """
+        # Convert validation results to DataFrame
+        data = []
+        row = {'R-squared': validation_results['R-squared'], 'p-value (const)': validation_results['P-values']['const'], 'p-value (close)': validation_results['P-values']['close']}
+        row.update({'R-squared above threshold': validation_results['Validation Checks']['R-squared above threshold']})
+        row.update({'P-values significant': validation_results['Validation Checks']['P-values significant']})
+        row.update({'Model is valid': validation_results['Validation Checks']['Model is valid']})
+        data.append(row)
+        df = pd.DataFrame(data)
+
+        title = "Regression Validation Results"
+        footer = "** R-squared should be above the threshold and p-values should be below the threshold for model validity."
+        
+        if to_html:
+            # Define the base indentation as a string of spaces
+            base_indent = "    " * indent
+            next_indent = "    " * (indent + 1)
+            
+            # Convert DataFrame to HTML table and add explanation
+            html_table = df.to_html(index=False, border=1)
+            html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
+
+            html_title = f"{next_indent}<h4>{title}</h4>\n"
+            html_footer = f"{next_indent}<p class='footnote'>{footer}</p>\n"
+            html_output = f"{base_indent}<div class='regression_validation'>\n{html_title}{html_table}\n{html_footer}{base_indent}</div>"
+            
+            return html_output
+        
+        else:
+            output = (
+                f"\n{title}\n"
+                f"{'=' * len(title)}\n"
+                f"{df.to_string(index=False)}\n"
+                f"{footer}"
+            )
+            if print_output:
+                print(output)
+            else:
+                return output
+
     # Regression Analysis
     def beta(self) -> float:
         """
@@ -199,6 +255,62 @@ class RegressionAnalysis:
         }
 
         return alpha_analysis_results
+    
+    @staticmethod
+    def display_alpha_analysis_results(alpha_analysis_results:dict, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
+        """
+        Display the alpha analysis results of a regression model.
+
+        This function formats the alpha analysis results into a human-readable format, either as a plain text table or an HTML table.
+        It provides insights on the alpha (intercept) significance, its confidence interval, and a brief interpretation of model validity based on p-values.
+
+        Parameters:
+        - alpha_analysis_results (dict): A dictionary containing the alpha analysis results of a regression model.
+        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
+        - to_html (bool): If True, the results are formatted as an HTML string. If False, they are formatted as plain text.
+        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
+
+        Returns:
+        - str: The formatted alpha analysis results as a string (plain text or HTML).
+        """
+        # Convert validation results to DataFrame
+        data = []
+        row = {'Alpha (Intercept)': alpha_analysis_results['Alpha (Intercept)'], 'p-value': round(alpha_analysis_results['P-value'],6)}
+        row.update({'Confidence Interval Lower Bound(2.5%)':alpha_analysis_results["Confidence Interval"][0]})
+        row.update({'Confidence Interval Upper Bound(97.5%)':alpha_analysis_results["Confidence Interval"][1]})
+        row.update({'Alpha is significant': alpha_analysis_results['Alpha is significant']})
+        data.append(row)
+
+        df = pd.DataFrame(data)
+
+        title = "Alpha Analysis Results"
+        footer = "** Note: For model validity, alpha should be significant (p-value < 0.05), and confidence intervals should not include zero."
+        if to_html:
+            # Define the base indentation as a string of spaces
+            base_indent = "    " * indent
+            next_indent = "    " * (indent + 1)
+            
+            # Convert DataFrame to HTML table and add explanation
+            html_table = df.to_html(index=False, border=1)
+            html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
+
+            html_title = f"{next_indent}<h4>{title}</h4>\n"
+            html_footer = f"{next_indent}<p class='footnote'>{footer}</p>\n"
+            html_output = f"{base_indent}<div class='alpha_analysis'>\n{html_title}{html_table}\n{html_footer}{base_indent}</div>"
+            
+            return html_output
+        
+        else:
+            output = (
+                f"\n{title}\n"
+                f"{'=' * len(title)}\n"
+                f"{df.to_string(index=False)}\n"
+                f"{footer}"
+            )
+            if print_output:
+                print(output)
+            else:
+                return output
 
     def analyze_beta(self, p_value_threshold:float=0.05) -> float:
         """
@@ -236,6 +348,63 @@ class RegressionAnalysis:
         }
 
         return beta_analysis_results
+    
+    @staticmethod
+    def display_beta_analysis_results(beta_analysis_results:dict, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
+        """
+        Display the beta analysis results of a regression model.
+
+        This function formats the beta analysis results into a human-readable format, either as a plain text table or an HTML table.
+        It provides insights on the beta (slope) significance, its confidence intervals, and a brief interpretation of model validity based on p-values.
+
+        Parameters:
+        - beta_analysis_results (dict): A dictionary containing the beta analysis results of a regression model.
+        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
+        - to_html (bool): If True, the results are formatted as an HTML string. If False, they are formatted as plain text.
+        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
+
+        Returns:
+        - str: The formatted beta analysis results as a string (plain text or HTML).
+        """
+        # Convert validation results to DataFrame
+        data = []
+        row = {'Beta (Slope)': beta_analysis_results['Beta (Slope)'], 'p-value': round(beta_analysis_results['P-value'],6)}
+        row.update({'Confidence Interval Lower Bound(2.5%)':beta_analysis_results["Confidence Interval"][0]})
+        row.update({'Confidence Interval Upper Bound(97.5%)':beta_analysis_results["Confidence Interval"][1]})
+        row.update({'Beta is significant': beta_analysis_results['Beta is significant']})
+        data.append(row)
+
+        df = pd.DataFrame(data)
+
+        title = "Beta Analysis Results"
+        footer = "** Note: For model validity, beta should be significant (p-value < 0.05), and confidence intervals should not include zero."
+        
+        if to_html:
+            # Define the base indentation as a string of spaces
+            base_indent = "    " * indent
+            next_indent = "    " * (indent + 1)
+            
+            # Convert DataFrame to HTML table and add explanation
+            html_table = df.to_html(index=False, border=1)
+            html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
+
+            html_title = f"{next_indent}<h4>{title}</h4>\n"
+            html_footer = f"{next_indent}<p class='footnote'>{footer}</p>\n"
+            html_output = f"{base_indent}<div class='beta_analysis'>\n{html_title}{html_table}\n{html_footer}{base_indent}</div>"
+            
+            return html_output
+        
+        else:
+            output = (
+                f"\n{title}\n"
+                f"{'=' * len(title)}\n"
+                f"{df.to_string(index=False)}\n"
+                f"{footer}"
+            )
+            if print_output:
+                print(output)
+            else:
+                return output
 
     # Measure Risk
     def risk_decomposition(self) -> dict:

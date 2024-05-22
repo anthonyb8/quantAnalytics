@@ -62,8 +62,6 @@ class DataProcessor:
         else:
             raise TypeError("Input data must be a DataFrame or Series.")
         
-        # # data = data.pivot(index='timestamp', columns='symbol')
-    
     @staticmethod
     def check_duplicates(data:Union[pd.DataFrame, pd.Series], subset:List[str]=None) -> bool:
         """
@@ -219,7 +217,7 @@ class DataProcessor:
     
     # -- Manipulate --
     @staticmethod
-    def normalize(data: Union[pd.DataFrame, pd.Series], method: str = 'column-wise') -> Union[pd.DataFrame, pd.Series]:
+    def normalize(data:Union[pd.DataFrame, pd.Series], method:str='column-wise') -> Union[pd.DataFrame, pd.Series]:
         """
         Normalizes the data to a range of [0, 1].
 
@@ -248,7 +246,7 @@ class DataProcessor:
             return (data - global_min) / (global_max - global_min)
     
     @staticmethod
-    def standardize(data: Union[pd.DataFrame, pd.Series], method: str = 'column-wise') -> Union[pd.DataFrame, pd.Series]:
+    def standardize(data:Union[pd.DataFrame, pd.Series], method:str='column-wise') -> Union[pd.DataFrame, pd.Series]:
         """
         Standardizes the data to have a mean of 0 and a standard deviation of 1.
 

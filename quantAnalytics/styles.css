@@ -2,37 +2,49 @@ body {
     font-family: Arial, sans-serif;
     margin: 20px;
 }
-h2 {
+h1 {
     color: #333;
+    text-align: center;
 }
-.dataframe, .dataframe th, .dataframe td {
-    border: 1px solid #ddd;
-    border-collapse: collapse;
+
+h3 {
+    color: #333;
+    border-bottom: 2px solid black;
+    width: 100%;
+    padding-bottom: 10px;
 }
-.dataframe th, .dataframe td {
-    padding: 8px;
-    text-align: left;
-}
-.dataframe th {
-    background-color: #f2f2f2;
-}
+
 p {
     margin-top: 0;
+    font-size: 0.6em;
 }
-.note {
-    font-size: 0.9em;
-    color: #555;
+
+.footnote {
+    margin-top: 0;
+    font-size: 0.5em;
+
 }
-.highlight {
-    color: #d04;
-    font-weight: bold;
+
+table, table th, table td {
+    border: 1px solid #ddd;
+    border-collapse: collapse;
+    max-width: 100%; /* Ensure images fit within the page width */
+}
+table th, table td {
+    padding: 4px;
+    text-align: left;
+    font-size: 0.6em;
+}
+table th {
+    background-color: #f2f2f2;
+    font-size: 0.6em;
 }
 
 img {
     max-width: 100%; /* Ensure images fit within the page width */
     height: auto;
-    display: block;
-    margin: 0 auto;
+    margin: 0; /* Remove margin to reduce gap */
+    padding: 0; /* Remove padding to reduce gap */
 }
 @media print {
     .pagebreak {

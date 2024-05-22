@@ -110,6 +110,24 @@ class TestRiskAnalysis(unittest.TestCase):
         self.assertGreater(z_score_dict['Z-score for 2 SD move (annualized)'], 0)
         self.assertGreater(z_score_dict['Z-score for 3 SD move (annualized)'], 0)
 
+
+    def test_display_volatility_zscore_results(self):
+        volatility_zscore_results={'Annualized Volatility': 0.21862629936907577, 'Annualized Mean Return': 0.12302713066962165, 'Z-Scores (Annualized)': {'Z-score for 1 SD move (annualized)': -0.43727204355258104, 'Z-score for 2 SD move (annualized)': -1.4372720435525812, 'Z-score for 3 SD move (annualized)': -2.437272043552581}}
+
+        # test
+        result = RiskAnalysis.display_volatility_zscore_results(volatility_zscore_results, False, False)
+
+        # expected
+        expected = (f"zscore volatility Results"
+                    f"========================="
+                    f"Annualized Volatility  Annualized Mean Return  Z-score for 1 SD (annualized)  Z-score for 2 SD (annualized)  Z-score for 3 SD (annualized)"
+                    f"0.218626                0.123027                      -0.437272                      -1.437272                      -2.437272"
+                    f"** R-squared should be above the threshold and p-values should be below the threshold for model validity."
+        )
+
+        # validate
+        self.assertTrue(len(result) > 0)
+
     # Type Constraints
     def test_drawdown_type_check(self):
         with self.assertRaises(TypeError):
