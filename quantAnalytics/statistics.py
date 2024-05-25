@@ -136,8 +136,8 @@ class TimeseriesTests:
         - test_data (pd.DateFrame): Represents the portion of the data from the train_ratio point to the end of the data.
         """
         split_index = int(len(data) * train_ratio)
-        train_data = data.iloc[:split_index]
-        test_data = data.iloc[split_index:]
+        train_data = data.iloc[:split_index].copy()
+        test_data = data.iloc[split_index:].copy()  
         return train_data, test_data
     
     # -- Stationarity -- 
