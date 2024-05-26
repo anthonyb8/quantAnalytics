@@ -64,7 +64,7 @@ class TestRiskAnalysis(unittest.TestCase):
         downside_deviation = negative_returns.std(ddof=1)
 
         if downside_deviation > 0:
-            expected_sortino_ratio = expected_return / downside_deviation
+            expected_sortino_ratio = expected_return / downside_deviation * np.sqrt(252)
         else:
             expected_sortino_ratio = 0.0
 

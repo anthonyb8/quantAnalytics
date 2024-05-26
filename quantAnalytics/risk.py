@@ -139,7 +139,8 @@ class RiskAnalysis:
             downside_deviation = negative_returns.std(ddof=1)
             
             if downside_deviation > 0:
-                return np.around(expected_return / downside_deviation, decimals=4)
+                sortino_ratio = expected_return / downside_deviation * np.sqrt(252)
+                return np.around(sortino_ratio, decimals=4)
             return 0.0
         except Exception as e:
             raise Exception(f"Error calculating sortino ratio : {e}")
