@@ -1,11 +1,63 @@
+import sys
 import unittest
 import numpy as np
 import pandas as pd
+from io import StringIO
 import matplotlib.pyplot as plt
 from contextlib import ExitStack
 from unittest.mock import MagicMock, patch
 
-from quantAnalytics.regression import RegressionAnalysis
+from quantAnalytics.regression import RegressionAnalysis, RegressionResults
+
+
+class RegressionResultsTests(unittest.TestCase):
+    def setUp(self):
+        validation_results = {'Model Performance': {'R-squared': {'value': 0.07945784006432621, 'significant': False}, 'Adjusted R-squared': {'value': 0.05585419493777055, 'significant': False}, 'RMSE': {'value': 0.06292741161674, 'significant': True}, 'MAE': {'value': 0.051336598197091465, 'significant': True}, 'F-statistic': {'value': 3.366337683789805, 'significant': True}, 'F-statistic p-value': {'value': 0.039600772589498276, 'significant': True}}, 'Diagnostic Checks': {'Durbin-Watson': {'value': 2.042989055805527, 'significant': True}, 'Jarque-Bera': {'value': 0.2597410094407664, 'significant': True}, 'Jarque-Bera p-value': {'value': 0.8782091474966396, 'significant': True}, 'Condition Number': {'value': 92.46590426344575, 'significant': False}, 'VIF (const)': {'value': 1.036878946992657, 'significant': True}, 'VIF (HE_futures)': {'value': 1.0452111916769846, 'significant': True}, 'VIF (ZC_futures)': {'value': 1.0452111916769848, 'significant': True}}, 'Coefficients': {'Alpha': {'value': 0.031923312262071624, 'significant': False}, 'Alpha p-value': {'value': 0.3228344222246903, 'significant': False}, 'Beta (HE_futures)': {'value': -2.3294492722303493, 'significant': True}, 'Beta (HE_futures) p-value': {'value': 0.01724398196089229, 'significant': True}, 'Beta (ZC_futures)': {'value': -2.5783556343954555, 'significant': False}, 'Beta (ZC_futures) p-value': {'value': 0.43378700254395897, 'significant': False}}, 'Model Validity': {'Model Validity': {'value': False, 'significant': False}}}
+        self.regression_results = RegressionResults(validation_results)
+
+        # expected print
+        self.output ="""\
+Regression Validation Results
+=============================
+                                Value Significant
+R-squared                   0.079458       False
+Adjusted R-squared          0.055854       False
+RMSE                        0.062927        True
+MAE                         0.051337        True
+F-statistic                 3.366338        True
+F-statistic p-value         0.039601        True
+Durbin-Watson               2.042989        True
+Jarque-Bera                 0.259741        True
+Jarque-Bera p-value         0.878209        True
+Condition Number           92.465904       False
+VIF (const)                 1.036879        True
+VIF (HE_futures)            1.045211        True
+VIF (ZC_futures)            1.045211        True
+Alpha                       0.031923       False
+Alpha p-value               0.322834       False
+Beta (HE_futures)          -2.329449        True
+Beta (HE_futures) p-value   0.017244        True
+Beta (ZC_futures)          -2.578356       False
+Beta (ZC_futures) p-value   0.433787       False
+Model Validity                 False       False
+** R-squared should be above the threshold and p-values should be below the threshold for model validity."""
+
+    # def test_to_string(self):
+    #     # Capture the printed output
+    #     captured_output = StringIO()
+    #     sys.stdout = captured_output
+
+    #     # test
+    #     print(self.regression_results)
+    #     sys.stdout = sys.__stdout__
+    #     print(captured_output.getvalue().strip())
+
+    #     # validate
+    #     self.assertEqual(captured_output.getvalue().strip(), self.output.strip())
+
+    # def test_to_html(self):
+    #     # test
+    #     result = self.regression_results.to_html()
 
 class RegressionAnalysisTests(unittest.TestCase):
     def setUp(self):
@@ -62,54 +114,7 @@ class RegressionAnalysisTests(unittest.TestCase):
         result = self.analysis.evaluate()
 
         # validate
-        for key, value in result["Model Performance"].items():
-            self.assertIn(key,['R-squared', 'Adjusted R-squared', 'RMSE','MAE'])
-            self.assertIsNotNone(value)
-
-        for key, value in result["Diagnostic Checks"].items():
-            self.assertIn(key,['Durbin-Watson', 'Jarque-Bera', 'Jarque-Bera p-value', 'Condition Number', 'Collinearity Check'])
-            self.assertIsNotNone(value)
-
-        for key, value in result["Significance"].items():
-            self.assertIn(key,['Alpha significant', 'Betas significant'])
-            self.assertIsNotNone(value)
-    
-        for key, value in result["Coefficients"].items():
-            self.assertIn(key,['Alpha', 'Beta'])
-            self.assertIsNotNone(value)
-
-        self.assertIn(result["Model Validity"], [True, False])
-
-    def test_display_evaluate_results(self):
-        validation_results = {'Model Performance': {'R-squared': 0.007085115263561148, 'Adjusted R-squared': 0.005662601102047526, 'RMSE': 14.415406782802307, 'MAE': 11.690757704078676}, 'Diagnostic Checks': {'Durbin-Watson': 0.0044781869311308715, 'Jarque-Bera': 33.255782105490034, 'Jarque-Bera p-value': 6.006184517041462e-08, 'Condition Number': 3242.7411812936634, 'Collinearity Check': {'const': 796.763885488744, 'close': 0.9999999999999998}}, 'Significance': {'Alpha significant': True, 'Betas significant': True}, 'Coefficients': {'Alpha': 94.55454169409774, 'Beta': {'close': 0.03704162764916609}}, 'Model Validity': False}
-        
-        # test
-        result = self.analysis._display_evaluate_results(validation_results, False, False)
-
-        # expected
-        expected = (f"Regression Validation Results"
-                    f"============================="
-                    f"                          Value"
-                    f"R-squared               0.007085"
-                    f"Adjusted R-squared      0.005663"
-                    f"RMSE                   14.415407"
-                    f"MAE                    11.690758"
-                    f"Durbin-Watson           0.004478"
-                    f"Jarque-Bera            33.255782"
-                    f"Jarque-Bera p-value          0.0"
-                    f"Condition Number     3242.741181"
-                    f"VIF (const)           796.763885"
-                    f"VIF (close)                  1.0"
-                    f"Alpha                  94.554542"
-                    f"Alpha significant           True"
-                    f"Beta (close)            0.037042"
-                    f"Betas significant           True"
-                    f"Model Validity             False"
-                    f"** R-squared should be above the threshold and p-values should be below the threshold for model validity."
-        )
-
-        # validate
-        self.assertTrue(len(result) > 0)
+        self.assertIsInstance(result, RegressionResults)
 
     # def test_hedge_analysis(self):
     #     self.analysis.fit()
@@ -247,77 +252,3 @@ class RegressionAnalysisTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-    # def test_beta(self):
-    #     # Assuming a regression model has already been fitted in setup
-    #     expected_beta = self.mock_model.params[1]  # Mock expected beta value
-        
-    #     # test
-    #     calculated_beta = self.analysis.beta()
-        
-    #     # validate
-    #     self.assertAlmostEqual(calculated_beta, expected_beta, places=4)
-
-    # def test_alpha(self):
-    #     # Expected alpha calculation
-    #     annualized_strategy_return = np.mean(self.analysis.strategy_returns) * 252
-    #     annualized_benchmark_return = np.mean(self.analysis.benchmark_returns) * 252
-    #     expected_alpha = annualized_strategy_return - (self.analysis.risk_free_rate +  self.mock_model.params[1] * (annualized_benchmark_return - self.analysis.risk_free_rate))
-
-    #     # test
-    #     calculated_alpha = self.analysis.alpha()
-
-    #     # validate
-    #     self.assertAlmostEqual(calculated_alpha, expected_alpha, places=3, msg="Calculated alpha does not match expected alpha.")
-
-    # def test_analyze_alpha(self):
-    #     # test
-    #     alpha_results = self.analysis.analyze_alpha()
-
-    #     # validate
-    #     self.assertEqual(alpha_results["Alpha (Intercept)"], 0.04)
-    #     self.assertEqual(alpha_results["P-value"], 0.03)
-    #     self.assertTrue(alpha_results['Alpha is significant'])
-    #     self.assertTrue(alpha_results['Confidence Interval spans zero'])
-
-    # def test_display_alpha_analysis_results(self):
-    #     alpha_analysis_results={'Alpha (Intercept)': 0.0031231873179405336, 'P-value': 0.11052398250364748, 'Confidence Interval': [-0.0007163438974512504, 0.006962718533332317], 'Alpha is significant': False, 'Confidence Interval spans zero': True}
-
-
-    #    # test
-    #     result = RegressionAnalysis.display_alpha_analysis_results(alpha_analysis_results, False, False)
-
-    #     # expected
-    #     expected = (f"Alpha Analysis Results"
-    #                 f"======================"
-    #                 f"Alpha (Intercept)  p-value  Confidence Interval Lower Bound(2.5%)  Confidence Interval Upper Bound(97.5%)  Alpha is significant"
-    #                 f"0.003123 0.110524                              -0.000716                                0.006963                 False"
-    #                 f"** Note: For model validity, alpha should be significant (p-value < 0.05), and confidence intervals should not include zero."
-    #     )
-
-    #     # validate
-    #     self.assertTrue(len(result) > 0)
-
-    # def test_analyze_beta(self):
-    #     beta_results = self.analysis.analyze_beta()
-
-    #     self.assertEqual(beta_results["Beta (Slope)"], 0.076941)
-    #     self.assertEqual(beta_results["P-value"], 0.08)
-    #     self.assertFalse(beta_results['Beta is significant'])
-
-    # def test_display_beta_analysis_results(self):
-    #     beta_analysis_results={'Beta (Slope)': -0.14951528991152752, 'P-value': 0.5352449917450732, 'Confidence Interval': [-0.6233804345394574, 0.3243498547164023], 'Beta is significant': False, 'Confidence Interval spans one': False}
-
-    #    # test
-    #     result = RegressionAnalysis.display_beta_analysis_results(beta_analysis_results, False, False)
-
-    #     # expected
-    #     expected = (f"Beta Analysis Results"
-    #                 f"====================="
-    #                 f"Beta (Slope)  p-value  Confidence Interval Lower Bound(2.5%)  Confidence Interval Upper Bound(97.5%)  Beta is significant"
-    #                 f"-0.149515 0.535245                               -0.62338                                 0.32435                False"
-    #                 f"** Note: For model validity, beta should be significant (p-value < 0.05), and confidence intervals should not include zero."
-    #     )
-
-    #     # validate
-    #     self.assertTrue(len(result) > 0)
