@@ -486,7 +486,7 @@ class TimeseriesTests:
                 'PP Statistic': values['PP Statistic'], 
                 'p-value': round(values['p-value'], 6)
             }
-            row.update({f'Critical Value ({key}%)': val for key, val in values['Critical Values'].items()})
+            row.update({f'Critical Value ({key})': val for key, val in values['Critical Values'].items()})
             row.update({'Stationarity': values['Stationarity']})
             pp_data.append(row)
 
@@ -782,7 +782,7 @@ class TimeseriesTests:
             html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
 
             # Construct the complete HTML output with proper indentation
-            html_title = f"{next_indent}<h2>{title}</h2>\n"
+            html_title = f"{next_indent}<h4>{title}</h4>\n"
             # html_header = f"{next_indent}<p>{header}</p>\n"
             html_footer = f"{next_indent}<p class='footnote'>{footer}</p>\n"
             html_output = f"{base_indent}<div class='johansen_test'>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
