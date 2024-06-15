@@ -3,7 +3,7 @@ import pandas as pd
 
 class RiskAnalysis:
     @staticmethod
-    def drawdown(returns:np.ndarray) -> np.ndarray:
+    def drawdown(returns:np.ndarray, decimals: int=6) -> np.ndarray:
         """
         Calculate the drawdown of a series of returns.
 
@@ -13,6 +13,7 @@ class RiskAnalysis:
 
         Parameters:
         - returns (np.ndarray): A numpy array of returns.
+        - decimals (int): Decimal rounding on return values. Defaults to 6.
 
         Returns:
         - np.ndarray: An array of drawdown values, rounded to four decimal places.
@@ -27,12 +28,12 @@ class RiskAnalysis:
             cumulative_returns = np.cumprod(1 + returns)  # Calculate cumulative returns
             rolling_max = np.maximum.accumulate(cumulative_returns)  # Calculate the rolling maximum
             drawdowns = (cumulative_returns - rolling_max) / rolling_max  # Calculate drawdowns in decimal format
-            return np.around(drawdowns, decimals=4)
+            return np.around(drawdowns, decimals=decimals)
         except Exception as e:
             raise Exception(f"Error calculating drawdown : {e}")
         
     @staticmethod
-    def max_drawdown(returns:np.ndarray) -> np.ndarray:
+    def max_drawdown(returns:np.ndarray, decimals: int=6) -> np.ndarray:
         """
         Calculate the maximum drawdown of a series of returns.
 
@@ -41,6 +42,7 @@ class RiskAnalysis:
 
         Parameters:
         - returns (np.ndarray): A numpy array of returns.
+        - decimals (int): Decimal rounding on return values. Defaults to 6.
 
         Returns:
         - float: The maximum drawdown value.
@@ -52,14 +54,39 @@ class RiskAnalysis:
             return np.array([0])
         
         try:
-            drawdowns = RiskAnalysis.drawdown(returns)
+            drawdowns = RiskAnalysis.drawdown(returns, decimals)
             max_drawdown = np.min(drawdowns)  # Find the maximum drawdown
             return max_drawdown
         except Exception as e:
             raise Exception(f"Error calculating max drawdown : {e}")
 
     @staticmethod
-    def annual_standard_deviation(returns:np.ndarray) -> float:
+    def standard_deviation(returns:np.ndarray, decimals: int=6) -> float:
+        """
+        Calculate the standard deviation of given returns.
+
+        Parameters:
+        - returns (np.ndarray): A numpy array of returns.
+        - decimals (int): Decimal rounding on return values. Defaults to 6.
+
+        Returns:
+        - float: The standard deviation, rounded to default 6 decimal places.
+        """
+
+        if not isinstance(returns, np.ndarray):
+            raise TypeError("returns must be a numpy array")
+        
+        if len(returns) == 0:
+            return np.array([0])
+        
+        try:
+            std_dev = np.std(returns, ddof=1) 
+            return np.around(std_dev, decimals=decimals)
+        except Exception as e:
+            raise Exception(f"Error calculating annualized standard deviation : {e}")
+    
+    @staticmethod
+    def annual_standard_deviation(returns:np.ndarray, decimals: int=6) -> float:
         """
         Calculate the annualized standard deviation of returns.
 
@@ -68,6 +95,7 @@ class RiskAnalysis:
 
         Parameters:
         - returns (np.ndarray): A numpy array of daily returns.
+        - decimals (int): Decimal rounding on return values. Defaults to 6.
 
         Returns:
         - float: The annualized standard deviation, rounded to four decimal places.
@@ -81,13 +109,13 @@ class RiskAnalysis:
         
         try:
             daily_std_dev = np.std(returns, ddof=1)  # Calculate daily standard deviation
-            annual_std_dev = round(daily_std_dev * np.sqrt(252), 4)  # Assuming 252 trading days in a year
-            return np.around(annual_std_dev, decimals=4)
+            annual_std_dev = daily_std_dev * np.sqrt(252)  # Assuming 252 trading days in a year
+            return np.around(annual_std_dev, decimals=decimals)
         except Exception as e:
             raise Exception(f"Error calculating annualized standard deviation : {e}")
         
     @staticmethod
-    def sharpe_ratio(returns:np.ndarray, risk_free_rate:float=0.04) -> float:
+    def sharpe_ratio(returns:np.ndarray, risk_free_rate:float=0.04, decimals: int=6) -> float:
         """
         Calculate the Sharpe ratio of the strategy.
 
@@ -98,6 +126,7 @@ class RiskAnalysis:
         Parameters:
         - returns (np.ndarray): A 1D array of returns.
         - risk_free_rate (float): The risk-free rate. Default is 0.04 (4% annually).
+        - decimals (int): Decimal rounding on return values. Defaults to 6.
 
         Returns:
         - float: The Sharpe ratio, rounded to four decimal places.
@@ -109,14 +138,22 @@ class RiskAnalysis:
             return np.array([0])
             
         try:
-            excess_returns = returns - risk_free_rate / 252
-            sharpe_ratio = excess_returns.mean() / excess_returns.std(ddof=1) * np.sqrt(252)
-            return np.around(sharpe_ratio, decimals=4) if excess_returns.std(ddof=1) != 0 else 0
+            daily_risk_free_rate = risk_free_rate / 252
+            excess_returns = returns - daily_risk_free_rate
+                 
+            # Annualized calculations
+            annualized_avg_excess_return = excess_returns.mean() * 252
+            annualized_std_excess_return = excess_returns.std(ddof=1)  * np.sqrt(252)
+
+            # Sharpe
+            sharpe_ratio = annualized_avg_excess_return / annualized_std_excess_return
+
+            return np.around(sharpe_ratio, decimals=decimals) if excess_returns.std(ddof=1) != 0 else 0
         except Exception as e:
             raise Exception(f"Error calculating sharpe ratio : {e}")
         
     @staticmethod
-    def sortino_ratio(returns:np.ndarray, target_return:float=0) -> float:
+    def sortino_ratio(returns:np.ndarray, risk_free_rate:float=0.04, decimals: int=6) -> float:
         """
         Calculate the Sortino Ratio for a given returns array.
 
@@ -126,22 +163,31 @@ class RiskAnalysis:
 
         Parameters:
         - returns (np.ndarray): A 1D array of returns.
-        - target_return (float): The target return. Default is 0.
+        - risk_free_rate (float): The risk-free rate. Default is 0.04 (4% annually).
+        - decimals (int): Decimal rounding on return values. Defaults to 6.
 
         Returns:
         - float: The Sortino ratio, rounded to four decimal places.
         """
         if not isinstance(returns, np.ndarray):
             raise TypeError("returns must be a numpy array")
+        
+        if len(returns) ==0:
+            return 0
+        
         try:
-            negative_returns = returns[returns < target_return]
-            expected_return = returns.mean() - target_return
-            downside_deviation = negative_returns.std(ddof=1)
-            
-            if downside_deviation > 0:
-                sortino_ratio = expected_return / downside_deviation * np.sqrt(252)
-                return np.around(sortino_ratio, decimals=4)
-            return 0.0
+            daily_risk_free_rate = risk_free_rate / 252
+            excess_returns = returns - daily_risk_free_rate
+            downside_returns = excess_returns[excess_returns < 0]
+
+            avg_excess_return = np.mean(excess_returns)
+            downside_deviation = np.std(downside_returns, ddof=1)
+
+            annualized_avg_excess_return = avg_excess_return * 252
+            annualized_downside_deviation = downside_deviation * np.sqrt(252)
+
+            sortino_ratio = annualized_avg_excess_return / annualized_downside_deviation
+            return np.around(sortino_ratio, decimals=decimals) if annualized_downside_deviation != 0 else 0
         except Exception as e:
             raise Exception(f"Error calculating sortino ratio : {e}")
 

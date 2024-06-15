@@ -26,13 +26,23 @@ class TestRiskAnalysis(unittest.TestCase):
 
     def test_max_drawdown(self):
         # expected
-        expected_max_drawdown = -0.019  
+        expected_max_drawdown = -0.019048 
 
         # test
         max_drawdown = RiskAnalysis.max_drawdown(self.returns)
 
         # validate
         self.assertEqual(max_drawdown, expected_max_drawdown)
+
+    def test_standard_deviation(self):
+        # expected
+        expected_annual_std_dev = np.std(self.returns, ddof=1)
+
+        # test
+        annual_std_dev = RiskAnalysis.standard_deviation(self.returns)
+
+        # validate
+        self.assertAlmostEqual(annual_std_dev, expected_annual_std_dev, places=4)
 
     def test_annual_standard_deviation(self):
         # expected
@@ -58,7 +68,7 @@ class TestRiskAnalysis(unittest.TestCase):
 
     def test_sortino_ratio(self):
         # expected
-        target_return = 0
+        target_return = 0.04/252
         negative_returns = self.returns[self.returns < target_return]
         expected_return = self.returns.mean() - target_return
         downside_deviation = negative_returns.std(ddof=1)
@@ -212,10 +222,10 @@ class TestRiskAnalysis(unittest.TestCase):
 
     def test_sortino_ratio_null_handling(self):
         # test
-        returns = RiskAnalysis.sharpe_ratio(np.array([]))
+        result = RiskAnalysis.sortino_ratio(np.array([]))
 
         # validate
-        self.assertEqual(RiskAnalysis.sortino_ratio(returns), 0)
+        self.assertEqual(result, 0)
 
 
 if __name__ == "__main__":
