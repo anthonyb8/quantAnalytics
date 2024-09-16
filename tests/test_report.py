@@ -3,21 +3,25 @@ import unittest
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from unittest.mock import patch, mock_open, Mock, MagicMock
+from unittest.mock import Mock, MagicMock
+from quantAnalytics.report import ReportGenerator, Header
+import shutil
 
-from quantAnalytics.report import ReportGenerator
 
+# Helper functions
 def generate_random_data(rows=100):
-    dates = pd.date_range(start='2023-01-01', periods=rows, freq='D')
+    dates = pd.date_range(start="2023-01-01", periods=rows, freq="D")
     data = np.random.randn(rows)
     return dates, data
+
 
 def simple_plot():
     plt.plot([1, 2, 3], [4, 5, 6])
 
+
 def line_plot(x, y, title="", x_label="", y_label=""):
     plt.figure(figsize=(10, 6))
-    plt.plot(x, y, marker='o')
+    plt.plot(x, y, marker="o")
     plt.title(title)
     plt.xlabel(x_label)
     plt.ylabel(y_label)
@@ -25,156 +29,136 @@ def line_plot(x, y, title="", x_label="", y_label=""):
     plt.xticks(rotation=45)
     plt.tight_layout()
 
+
+def create_plot_image(image_path: str) -> None:
+    """
+    Generates a simple plot and saves it to the specified path.
+
+    Parameters:
+    - image_path (str): The full path where the image will be saved (e.g., 'output_plot.png').
+    """
+    plt.figure(figsize=(6, 4))
+    plt.plot([1, 2, 3, 4], [1, 4, 9, 16], label="Sample Plot")
+    plt.xlabel("X-Axis")
+    plt.ylabel("Y-Axis")
+    plt.title("Sample Plot")
+    plt.legend()
+
+    # Save the plot as an image
+    plt.savefig(image_path)
+    plt.close()
+
+
 class TestReportGenerator(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
-        self.report_path = "test_report.html"
-        self.pdf_path = self.report_path.replace(".html", ".pdf")
-        self.report = ReportGenerator(self.report_path)
+        self.output_directory = "test_report"
+        self.html_name = "test_report.html"
+        self.pdf_name = self.html_name.replace(".html", ".pdf")
+        self.report = ReportGenerator(self.html_name, self.output_directory)
 
+    # @classmethod
     def tearDown(self):
         """Tear down test fixtures."""
-        if os.path.exists(self.report_path):
-            os.remove(self.report_path)
-        if os.path.exists(self.pdf_path):
-            os.remove(self.pdf_path)
+        if os.path.exists(self.output_directory):
+            shutil.rmtree(self.output_directory)
+        # html = os.path.join(cls.output_directory, cls.html_name)
+        # if os.path.exists(cls.output_directory):
+        #     os.rmdir(cls.output_directory)
+        #
+        # pdf = os.path.join(self.output_directory, self.pdf_name)
+        # if os.path.exists(pdf):
+        #     os.remove(pdf)
 
-    # basic validation
-    def test_add_main_title(self):
-        # test
-        self.report.add_main_title("Test Title")
-        
-        # validate
-        self.assertIn("<h1>Test Title</h1>", self.report.html_content)
+    def test_add_header(self):
+        # Test
+        self.report.add_header("Header Test", Header.H1, "test")
+        self.report.add_header("Header Test", Header.H2)
 
-    def test_add_section_title(self):
-        # test
-        self.report.add_section_title("Test Title")
-        
-        # validate
-        self.assertIn("<h3>Test Title</h3>", self.report.html_content)
-    
-    def test_add_text(self):
-        html_content = "<p>Test HTML Content</p>"
-        # test 
-        self.report.add_text(html_content)
-        
-        # validate
-        self.assertIn(html_content, self.report.html_content)
+        # Validate
+        self.assertIn('<h1 class="test">Header Test</h1>', self.report._html_content)
+        self.assertIn("<h2>Header Test</h2>", self.report._html_content)
 
-    def test_add_list(self):
+    def test_add_paragraph(self):
+        # Test
+        self.report.add_paragraph("Hello this is a paragraph", "para")
+
+        # Validate
+        self.assertIn('<p class="para">Hello this is a paragraph</p>', self.report._html_content)
+
+    def test_add_unorderdlist_dict(self):
+        # Test
         summary_dict = {"key1": "value1", "key2": "value2"}
-        # test 
-        self.report.add_list(summary_dict)
-        # validate
-        self.assertIn("<li><strong>key1:</strong> value1</li>", self.report.html_content)
-        self.assertIn("<li><strong>key2:</strong> value2</li>", self.report.html_content)
+        self.report.add_unorderedlist_dict(summary_dict, True, "dict1")
+
+        summary_dict = {"key1": "value1", "key2": "value2"}
+        self.report.add_unorderedlist_dict(summary_dict, bold_key=False, css_class="dict2")
+
+        # Validate
+        self.assertIn(
+            f"""<ul class="dict1">\n<li><strong>key1:</strong> value1</li>\n<li><strong>key2:</strong> value2</li>\n</ul>""",
+            self.report._html_content,
+        )
+        self.assertIn(
+            f"""<ul class="dict2">\n<li>key1: value1</li>\n<li>key2: value2</li>\n</ul>""",
+            self.report._html_content,
+        )
+
+    def test_add_unorderedlist(self):
+        # Test
+        ordered_list = ["hello", "world"]
+        self.report.add_unorderedlist(ordered_list, css_class="list1")
+
+        # Validate
+        self.assertIn(
+            f"""<ul class="list1">\n<li>hello</li>\n<li>world</li>\n</ul>""",
+            self.report._html_content,
+        )
+
+    def test_add_orderedlist(self):
+        # Test
+        ordered_list = ["hello", "world"]
+        self.report.add_orderedlist(ordered_list, css_class="list2")
+
+        # Validate
+        self.assertIn(
+            f"""<ol class="list2">\n<li>hello</li>\n<li>world</li>\n</ol>""",
+            self.report._html_content,
+        )
 
     def test_add_table(self):
-        headers = ["Column1", "Column2"]
-        rows = [["Row1Cell1", "Row1Cell2"], ["Row2Cell1", "Row2Cell2"]]
-        # Test 
-        self.report.add_table(headers, rows)
+        # Test
+        df = pd.DataFrame({"Column1": [1, 2], "Column2": [3, 4]})
+        self.report.add_table(df, "Title", Header.H4, "title_css", "table_css")
 
         # Validate
-        self.assertIn("<th>Column1</th>", self.report.html_content)
-        self.assertIn("<td>Row1Cell1</td>", self.report.html_content)
+        self.assertIn(
+            f"""<h4 class=\'h4\'>Title</h4>\n<table class="table_css"><table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th>Column1</th>\n      <th>Column2</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td>1</td>\n      <td>3</td>\n    </tr>\n    <tr>\n      <td>2</td>\n      <td>4</td>\n    </tr>\n  </tbody>\n</table>\n</table>""",
+            self.report._html_content,
+        )
 
     def test_add_image(self):
-        # Test
-        self.report.add_image(simple_plot)
-        # Validate
-        self.assertIn('<img src="data:image/png;base64,', self.report.html_content)
+        create_plot_image("test_report/output_plot.png")
 
-    def test_add_dataframe(self):
-        df = pd.DataFrame({'Column1': [1, 2], 'Column2': [3, 4]})
         # Test
-        self.report.add_dataframe(df, "DataFrame Title")
-        # Validate
-        self.assertIn("<h4>DataFrame Title</h4>", self.report.html_content)
-        self.assertIn("Column1", self.report.html_content)
-        self.assertIn("1", self.report.html_content)
+        self.report.add_image("output_plot.png", css_class="image1")
 
-
-    def test_add_dataframe_not_title(self):
-        df = pd.DataFrame({'Column1': [1, 2], 'Column2': [3, 4]})
-        # Test
-        self.report.add_dataframe(df)
         # Validate
-        self.assertIn("Column1", self.report.html_content)
-        self.assertIn("1", self.report.html_content)
+        self.assertIn(f"""<img src="output_plot.png" class="image1" alt="Plot Image"><br>""", self.report._html_content)
 
     def test_complete_report(self):
         # Setup
         mock_html_content = "<html><body>Report content</body></html>"
-        self.report.html_content = mock_html_content 
+        self.report._html_content = mock_html_content
         self.report._generate_html = Mock()
         self.report._generate_pdf = Mock()
 
         # test
         self.report.complete_report()
-        
+
         # Validate HTML file write
         self.report._generate_html.assert_called_once()
         self.report._generate_pdf.assert_called_once()
-    
-    # type constraints
-    def test_add_main_title_type_check(self):
-        with self.assertRaises(TypeError):
-            self.report.add_main_title(9999)
-
-    def test_add_section_title_type_check(self):
-        with self.assertRaises(TypeError):
-            self.report.add_section_title(9999)
-
-    def test_add_text_type_check(self):
-        with self.assertRaises(TypeError):
-            self.report.add_text(9999)
-
-    def test_add_text_type_check(self):
-        with self.assertRaises(TypeError):
-            self.report.add_text(9999)
-
-    def test_add_list_type_check(self):
-        with self.assertRaises(TypeError):
-            self.report.add_list("asdfghgfdsdfgfdsdf")
-
-    def test_add_table_type_check(self):
-        headers = ["Column1", "Column2"]
-        rows = [["Row1Cell1", "Row1Cell2"], ["Row2Cell1", "Row2Cell2"]]
-
-        with self.assertRaises(TypeError):
-            self.report.add_table("headers", rows)
-
-        with self.assertRaises(TypeError):
-            self.report.add_table(headers, "rows")
-    
-        with self.assertRaises(TypeError):
-            self.report.add_table(headers, rows, "0")
-
-    def test_add_image_type_check(self):
-        with self.assertRaises(TypeError):
-            self.report.add_image("simple_plot")
-    
-        with self.assertRaises(TypeError):
-            self.report.add_image(simple_plot, indent="1")
-
-    def test_add_dataframe_type_check(self):
-        df = pd.DataFrame({'Column1': [1, 2], 'Column2': [3, 4]})
-
-        with self.assertRaises(TypeError):
-            self.report.add_dataframe(1234, "DataFrame Title")
-
-        with self.assertRaises(TypeError):
-            self.report.add_dataframe(df, 1234)
-
-    # value constraints
-    def test_add_table_value_check(self):
-        headers = ["Column1", "Column2"]
-        rows = [["Row1Cell1", "Row1Cell2"], ["Row2Cell1"]]
-
-        with self.assertRaises(ValueError):
-            self.report.add_table(headers, rows)
 
     # error handling
     def test_complete_report_errors(self):
@@ -191,33 +175,6 @@ class TestReportGenerator(unittest.TestCase):
         self.report._generate_html.assert_called_once()
         self.report._generate_pdf.assert_not_called()
 
-    # integration
-    def test_integration(self):
-        # Set-up Report
-        report_path = "isolated_test_report.html"
-        # custom_css = "tests/test_styles.css"
-        report = ReportGenerator(report_path)
 
-        # Generate Random Data
-        dates, data = generate_random_data()
-
-        # Add Section and Plot
-        report.add_main_title("Random Data Visualization")
-        report.add_image(line_plot, 0, x=dates, y=data, title="Random Data Line Plot", x_label="Date", y_label="Value")
-
-        # Add a Random Data Table
-        random_df = pd.DataFrame({'Date': dates, 'Value': data})
-        report.add_dataframe(random_df, "Random Data Table")
-
-        # Add Another Section and Plot
-        report.add_section_title("Another Random Data Visualization")
-        more_dates, more_data = generate_random_data()
-        report.add_image(line_plot, 0, x=more_dates, y=more_data, title="More Random Data Line Plot", x_label="Date", y_label="Value")
-
-        # Complete and Generate Report
-        report.complete_report()
-
-
-
-if __name__ =="__main__":
+if __name__ == "__main__":
     unittest.main()

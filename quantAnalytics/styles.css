@@ -51,3 +51,9 @@ img {
         page-break-before: always;
     }
 }
+
+.shit {
+    color: red;
+    font-size: 32px;
+    text-transform: uppercase;
+}
