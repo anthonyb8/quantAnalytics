@@ -2,52 +2,36 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
-from sklearn.model_selection import cross_val_score
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from statsmodels.regression.linear_model import RegressionResultsWrapper
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
-from quantAnalytics.statistics import TimeseriesTests
+from quantAnalytics.statistics import TimeseriesTests, Result
 
-class RegressionResults:
-    def __init__(self, results: dict):
-        self.results = results
-        self.title = "Regression Validation Results"
+
+class RegressionResult(Result):
+    def __init__(self, data: dict):
+        super().__init__("Regression Analysis", "", data)
         self.footer = "** R-squared should be above the threshold and p-values should be below the threshold for model validity."
 
-    def __repr__(self):
-        return self.to_string()
-    
-    def _flatten_results(self):
+    def _to_dataframe(self) -> pd.DataFrame:
+        # Flatten results
         flattened_data = {}
-        for section, metrics in self.results.items():
+        for section, metrics in self.data.items():
             for metric, values in metrics.items():
                 flattened_data[f"{metric}"] = values
-        
-        return flattened_data
-
-    def to_string(self):
-        flattened_data=self._flatten_results()
 
         # Convert the flattened dictionary to a DataFrame
         df = pd.DataFrame(flattened_data).T
-        df.columns = ['Value', 'Significant']
-        report = df.to_string(header=True, index=True)
-        return f"{self.title}\n{'=' * len(self.title)}\n{report}\n{self.footer}"
+        df = df.reset_index()
+        df.columns = ["Field", "Value", "Significant"]
+        return df
 
-    def to_html(self, indent: int = 0):
-        flattened_data=self._flatten_results()
-        # Convert the flattened dictionary to a DataFrame
-        df = pd.DataFrame(flattened_data).T
-        df.columns = ['Value', 'Significant']
-        
-        indent_str = " " * (4 * indent)
-        report = df.to_html(header=True, index=True, border=0)
-        report = report.replace('<table border="1" class="dataframe">', f'{indent_str}<table class="dataframe">')
-        return report
 
 class RegressionAnalysis:
-    def __init__(self, y:pd.Series, X:pd.DataFrame, risk_free_rate:float=0.01):
+    def __init__(
+        self, y: pd.Series, X: pd.DataFrame, risk_free_rate: float = 0.01
+    ):
         """
         Initialize the RegressionAnalysis with strategy and benchmark returns.
 
@@ -65,13 +49,19 @@ class RegressionAnalysis:
             y = y.squeeze()
 
         if len(y) != len(X):
-            raise ValueError(f"Independent(X) and dependent(y) variables must be the same length.")
+            raise ValueError(
+                f"Independent(X) and dependent(y) variables must be the same length."
+            )
 
         self.X = X
         self.y = y
-        self.X_train, self.X_test = TimeseriesTests.split_data(X, train_ratio=0.7)
-        self.y_train, self.y_test = TimeseriesTests.split_data(y, train_ratio=0.7)
-        self.model : sm.OLS = None
+        self.X_train, self.X_test = TimeseriesTests.split_data(
+            X, train_ratio=0.7
+        )
+        self.y_train, self.y_test = TimeseriesTests.split_data(
+            y, train_ratio=0.7
+        )
+        self.model: sm.OLS = None
 
     # Regression Model
     def fit(self) -> RegressionResultsWrapper:
@@ -83,24 +73,28 @@ class RegressionAnalysis:
         - statsmodels.regression.linear_model.RegressionResultsWrapper: The fitted regression model summary.
         """
         try:
-            self.X_train = sm.add_constant(self.X_train)  # Add the intercept term
+            self.X_train = sm.add_constant(
+                self.X_train
+            )  # Add the intercept term
             self.model = sm.OLS(self.y_train, self.X_train).fit()
             return self.model.summary()
         except Exception as e:
             raise Exception(f"Error fitting OLS model : {e}")
-        
-    def predict(self, X_new:pd.DataFrame) -> pd.Series:
+
+    def predict(self, X_new: pd.DataFrame) -> pd.Series:
         if not isinstance(X_new, (pd.DataFrame, pd.Series)):
             raise TypeError("X must be a pandas DataFrame")
-        
+
         try:
-            X_new =sm.add_constant(X_new)
+            X_new = sm.add_constant(X_new)
             X_new_pred = self.model.predict(X_new)
             return X_new_pred
         except Exception as e:
             raise Exception(f"Error occured while making predictions : {e}")
-    
-    def evaluate(self, r_squared_threshold:float=0.3, p_value_threshold:float=0.05):
+
+    def evaluate(
+        self, r_squared_threshold: float = 0.3, p_value_threshold: float = 0.05
+    ) -> Result:
         """
         Evaluate the model on the test data and validate it based on R-squared and p-values significance.
 
@@ -112,11 +106,13 @@ class RegressionAnalysis:
         - p_value_threshold (float, optional): The threshold for p-values. Default is 0.05.
 
         Returns:
-        - dict: A dictionary containing the R-squared, RMSE, MAE of the model on the test set, 
+        - dict: A dictionary containing the R-squared, RMSE, MAE of the model on the test set,
                 and validation checks for R-squared and p-values.
         """
         if not self.model:
-            raise ValueError("Regression analysis not performed yet. Please fit the model first.")
+            raise ValueError(
+                "Regression analysis not performed yet. Please fit the model first."
+            )
 
         # Predictions on test set
         X_test_with_const = sm.add_constant(self.X_test)
@@ -132,14 +128,32 @@ class RegressionAnalysis:
         f_pvalue = self.model.f_pvalue
 
         model_performance = {
-            'R-squared': {'value': r_squared, 'significant': r_squared > r_squared_threshold},
-            'Adjusted R-squared': {'value': adj_r_squared, 'significant': adj_r_squared > r_squared_threshold},
-            'RMSE': {'value': rmse, 'significant': True},  # No threshold for RMSE, always include value
-            'MAE': {'value': mae, 'significant': True},  # No threshold for MAE, always include value
-            'F-statistic': {'value': f_statistic, 'significant': f_pvalue < p_value_threshold},
-            'F-statistic p-value': {'value': f_pvalue, 'significant': f_pvalue < p_value_threshold}
+            "R-squared": {
+                "value": r_squared,
+                "significant": r_squared > r_squared_threshold,
+            },
+            "Adjusted R-squared": {
+                "value": adj_r_squared,
+                "significant": adj_r_squared > r_squared_threshold,
+            },
+            "RMSE": {
+                "value": rmse,
+                "significant": True,
+            },  # No threshold for RMSE, always include value
+            "MAE": {
+                "value": mae,
+                "significant": True,
+            },  # No threshold for MAE, always include value
+            "F-statistic": {
+                "value": f_statistic,
+                "significant": f_pvalue < p_value_threshold,
+            },
+            "F-statistic p-value": {
+                "value": f_pvalue,
+                "significant": f_pvalue < p_value_threshold,
+            },
         }
-        
+
         # Diagnostic checks
         dw_stat = sm.stats.durbin_watson(residuals)
         jb_stat, jb_pvalue, _, _ = sm.stats.jarque_bera(residuals)
@@ -147,52 +161,84 @@ class RegressionAnalysis:
         vif = self.check_collinearity()
 
         diagnostic_check = {
-                'Durbin-Watson': {'value': dw_stat, 'significant': 1.5 < dw_stat < 2.5},
-                'Jarque-Bera': {'value': jb_stat, 'significant': jb_pvalue > p_value_threshold},
-                'Jarque-Bera p-value': {'value': jb_pvalue, 'significant': jb_pvalue > p_value_threshold},
-                'Condition Number': {'value': condition_number, 'significant': condition_number < 30}
+            "Durbin-Watson": {
+                "value": dw_stat,
+                "significant": 1.5 < dw_stat < 2.5,
+            },
+            "Jarque-Bera": {
+                "value": jb_stat,
+                "significant": jb_pvalue > p_value_threshold,
+            },
+            "Jarque-Bera p-value": {
+                "value": jb_pvalue,
+                "significant": jb_pvalue > p_value_threshold,
+            },
+            "Condition Number": {
+                "value": condition_number,
+                "significant": condition_number < 30,
+            },
         }
 
         for key, value in vif.items():
-            diagnostic_check[f'VIF ({key})'] = {'value': value, 'significant': value < 10}
-        
+            diagnostic_check[f"VIF ({key})"] = {
+                "value": value,
+                "significant": value < 10,
+            }
+
         # Coefficients
         coefficients = self.model.params
         p_values = self.model.pvalues
-        alpha = coefficients['const']
-        alpha_p_value = p_values['const']
-        beta = coefficients.drop('const').to_dict()
-        beta_p_value = p_values.drop('const').to_dict()
+        alpha = coefficients["const"]
+        alpha_p_value = p_values["const"]
+        beta = coefficients.drop("const").to_dict()
+        beta_p_value = p_values.drop("const").to_dict()
 
         coefficients = {
-                'Alpha': {'value': alpha, 'significant': alpha_p_value < p_value_threshold},
-                'Alpha p-value': {'value': alpha_p_value, 'significant': alpha_p_value < p_value_threshold},
+            "Alpha": {
+                "value": alpha,
+                "significant": alpha_p_value < p_value_threshold,
+            },
+            "Alpha p-value": {
+                "value": alpha_p_value,
+                "significant": alpha_p_value < p_value_threshold,
+            },
         }
         for key, value in beta.items():
-            coefficients[f'Beta ({key})'] = {'value': value, 'significant': beta_p_value[key] < p_value_threshold}
-            coefficients[f'Beta ({key}) p-value'] = {'value': beta_p_value[key] , 'significant': beta_p_value[key] < p_value_threshold}
+            coefficients[f"Beta ({key})"] = {
+                "value": value,
+                "significant": beta_p_value[key] < p_value_threshold,
+            }
+            coefficients[f"Beta ({key}) p-value"] = {
+                "value": beta_p_value[key],
+                "significant": beta_p_value[key] < p_value_threshold,
+            }
 
         # Validation
         model_validity = (
-            p_values['const'] < p_value_threshold and
-            all(p_values.drop('const') < p_value_threshold) and
-            f_pvalue < p_value_threshold and
-            r_squared > r_squared_threshold and
-            1.5 < dw_stat < 2.5 and
-            jb_pvalue > p_value_threshold and
-            condition_number < 30
+            p_values["const"] < p_value_threshold
+            and all(p_values.drop("const") < p_value_threshold)
+            and f_pvalue < p_value_threshold
+            and r_squared > r_squared_threshold
+            and 1.5 < dw_stat < 2.5
+            and jb_pvalue > p_value_threshold
+            and condition_number < 30
         )
 
         # Validation summary
         report = {
-            'Model Performance': model_performance,
-            'Diagnostic Checks': diagnostic_check,
-            'Coefficients': coefficients,
-            'Model Validity': {'Model Validity': {'value': model_validity, 'significant': model_validity}}
+            "Model Performance": model_performance,
+            "Diagnostic Checks": diagnostic_check,
+            "Coefficients": coefficients,
+            "Model Validity": {
+                "Model Validity": {
+                    "value": model_validity,
+                    "significant": model_validity,
+                }
+            },
         }
 
-        return RegressionResults(report)
-    
+        return RegressionResult(report)
+
     # Checks
     def check_collinearity(self):
         """
@@ -205,40 +251,57 @@ class RegressionAnalysis:
         - pd.DataFrame: A DataFrame with predictor variables and their corresponding VIF values.
         """
         if not self.model:
-            raise ValueError("Model not fitted yet. Please fit the model before checking for collinearity.")
+            raise ValueError(
+                "Model not fitted yet. Please fit the model before checking for collinearity."
+            )
         try:
-            X_with_const = sm.add_constant(self.X_test) # Adding a constant for the intercept
+            X_with_const = sm.add_constant(
+                self.X_test
+            )  # Adding a constant for the intercept
             # Calculating VIF for each feature
-            vif_data = {X_with_const.columns[i]: variance_inflation_factor(X_with_const.values, i) for i in range(X_with_const.shape[1])}
+            vif_data = {
+                X_with_const.columns[i]: variance_inflation_factor(
+                    X_with_const.values, i
+                )
+                for i in range(X_with_const.shape[1])
+            }
             return vif_data
         except Exception as e:
-            raise  Exception(f"Error calculating collinearity : {e}")
-        
+            raise Exception(f"Error calculating collinearity : {e}")
+
     # Plots
     def plot_residuals(self):
         """
         Plot residuals against fitted values to diagnose the regression model.
 
         This method generates a scatter plot of residuals versus fitted values and includes a horizontal line at zero.
-        It is used to check for non-random patterns in residuals which could indicate problems with the model such as 
+        It is used to check for non-random patterns in residuals which could indicate problems with the model such as
         non-linearity, outliers, or heteroscedasticity.
         """
         if not self.model:
-            raise ValueError("Model not fitted yet. Please fit the model before plotting residuals.")
-        
+            raise ValueError(
+                "Model not fitted yet. Please fit the model before plotting residuals."
+            )
+
         # Calculate residuals
         residuals = self.y_train - self.model.fittedvalues
-        
+
         # Create the plot
         fig, ax = plt.subplots(figsize=(10, 6))
 
-        ax.scatter(self.model.fittedvalues, residuals, alpha=0.5, color='blue', edgecolor='k')
-        ax.axhline(0, color='red', linestyle='--')
-        ax.set_xlabel('Fitted values')
-        ax.set_ylabel('Residuals')
-        ax.set_title('Residuals vs Fitted Values')
+        ax.scatter(
+            self.model.fittedvalues,
+            residuals,
+            alpha=0.5,
+            color="blue",
+            edgecolor="k",
+        )
+        ax.axhline(0, color="red", linestyle="--")
+        ax.set_xlabel("Fitted values")
+        ax.set_ylabel("Residuals")
+        ax.set_title("Residuals vs Fitted Values")
         ax.grid(True)
-        
+
         # Adjust layout to minimize white space
         plt.tight_layout()
 
@@ -253,16 +316,18 @@ class RegressionAnalysis:
         This helps in diagnosing deviations from normality such as skewness and kurtosis.
         """
         if not self.model:
-            raise ValueError("Model not fitted yet. Please fit the model before plotting Q-Q plot.")
+            raise ValueError(
+                "Model not fitted yet. Please fit the model before plotting Q-Q plot."
+            )
 
         # Calculate residuals
-        residuals = self.y_train- self.model.fittedvalues
+        residuals = self.y_train - self.model.fittedvalues
 
         # Generate Q-Q plot
         fig = plt.figure(figsize=(10, 6))
         ax = fig.add_subplot(111)
-        sm.qqplot(residuals, line='45', ax=ax, fit=True)
-        ax.set_title('Q-Q Plot of Residuals')
+        sm.qqplot(residuals, line="45", ax=ax, fit=True)
+        ax.set_title("Q-Q Plot of Residuals")
         ax.grid(True)
 
         # Adjust layout to minimize white space
@@ -279,17 +344,19 @@ class RegressionAnalysis:
         affect the robustness of the regression model.
         """
         if not self.model:
-            raise ValueError("Model not fitted yet. Please fit the model before assessing influence.")
+            raise ValueError(
+                "Model not fitted yet. Please fit the model before assessing influence."
+            )
 
         influence = self.model.get_influence()
         cooks_d = influence.cooks_distance[0]
 
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.stem(np.arange(len(cooks_d)), cooks_d, markerfmt=",")
-        ax.set_title('Cook\'s Distance Plot')
-        ax.set_xlabel('Observation Index')
-        ax.set_ylabel('Cook\'s Distance')
-        
+        ax.set_title("Cook's Distance Plot")
+        ax.set_xlabel("Observation Index")
+        ax.set_ylabel("Cook's Distance")
+
         # Adjust layout to minimize white space
         plt.tight_layout()
 
@@ -297,7 +364,7 @@ class RegressionAnalysis:
         return fig
 
     # Measure Risk
-    def risk_decomposition(self, data='all') -> dict:
+    def risk_decomposition(self, data="all") -> dict:
         """
         Decompose risk into idiosyncratic, market, and total based on regression analysis.
 
@@ -311,19 +378,23 @@ class RegressionAnalysis:
         - dict: A dictionary containing market volatility, idiosyncratic volatility, and total volatility.
         """
         if self.model is None:
-            raise ValueError("Model not fitted yet. Please fit the model before performing risk decomposition.")
+            raise ValueError(
+                "Model not fitted yet. Please fit the model before performing risk decomposition."
+            )
 
-        if data == 'train':
+        if data == "train":
             y = self.y_train
             X = self.X_train
-        elif data == 'test':
+        elif data == "test":
             y = self.y_test
             X = self.X_test
-        elif data == 'all':
+        elif data == "all":
             y = self.y
             X = self.X
         else:
-            raise ValueError("Invalid data option. Choose from 'train', 'test', or 'all'.")
+            raise ValueError(
+                "Invalid data option. Choose from 'train', 'test', or 'all'."
+            )
 
         # Calculate total variance of the dependent variable (y)
         total_variance = y.var()
@@ -340,11 +411,11 @@ class RegressionAnalysis:
         # Ensure idiosyncratic variance is non-negative
         if idiosyncratic_variance < 0:
             idiosyncratic_variance = 0
-            
+
         return {
             "Total Volatility": np.sqrt(total_variance),
             "Systematic Volatility": np.sqrt(systematic_variance),
-            "Idiosyncratic Volatility": np.sqrt(idiosyncratic_variance)
+            "Idiosyncratic Volatility": np.sqrt(idiosyncratic_variance),
         }
 
     def performance_attribution(self) -> dict:
@@ -358,30 +429,35 @@ class RegressionAnalysis:
         - dict: A dictionary containing market contribution, idiosyncratic contribution, and total contribution.
         """
         if self.model is None:
-            raise ValueError("Model not fitted yet. Please fit the model before performing performance decomposition.")
+            raise ValueError(
+                "Model not fitted yet. Please fit the model before performing performance decomposition."
+            )
 
         # Calculate total return of the dependent variable (y)
         total_return = self.y.mean()
 
         # Calculate alpha (intercept)
-        alpha = self.model.params['const']
+        alpha = self.model.params["const"]
 
         # Calculate systematic return based on the number of predictors
         if len(self.X.columns) > 1:  # Multi-factor model
-            systematic_return = sum(self.model.params.iloc[i+1] * self.X.iloc[:, i].mean() for i in range(len(self.X.columns)))
+            systematic_return = sum(
+                self.model.params.iloc[i + 1] * self.X.iloc[:, i].mean()
+                for i in range(len(self.X.columns))
+            )
         else:  # Single-factor model
             beta = self.model.params.iloc[1]
             systematic_return = beta * self.X.iloc[:, 0].mean()
 
         # Calculate idiosyncratic return as total return minus systematic return
         idiosyncratic_return = total_return - systematic_return
-        
+
         return {
             "Total Contribution": total_return,
             "Systematic Contribution": systematic_return,
             "Idiosyncratic Contribution": idiosyncratic_return,
             "Alpha Contribution": alpha,
-            "Randomness": idiosyncratic_return - alpha
+            "Randomness": idiosyncratic_return - alpha,
         }
 
     # def hedge_analysis(self) -> dict:
@@ -396,16 +472,16 @@ class RegressionAnalysis:
     #     """
     #     if self.model is None:
     #         raise ValueError("Model not fitted yet. Please fit the model before performing performance decomposition.")
-        
+
     #     # Using the last value of the equity curve to represent the current portfolio value
     #     portfolio_value = self.equity_curve.iloc[-1]
-        
+
     #     # Assuming self.model.params['beta'] exists and represents the portfolio's beta relative to the market
     #     beta = self.model.params.iloc[1]
-        
+
     #     # Calculate portfolio dollar beta
     #     portfolio_dollar_beta = portfolio_value * beta
-        
+
     #     # Market Hedge NMV calculation
     #     market_hedge_nmv = -portfolio_dollar_beta
 
@@ -414,4 +490,3 @@ class RegressionAnalysis:
     #         "Market Hedge NMV": market_hedge_nmv,
     #         "Beta": beta,
     #     }
-

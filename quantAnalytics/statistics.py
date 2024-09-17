@@ -35,7 +35,7 @@ class Result(ABC):
         self.test_name = test_name
         self.timeseries_name = ts_name
         self.data = data
-        self.header = f"{test_name} Test Results"
+        self.header = f"{test_name} Results"
         self.footer = ""
 
     @abstractmethod
@@ -43,11 +43,11 @@ class Result(ABC):
         """Abstract method for converts data to dataframe."""
         pass
 
-    def to_html(self) -> str:
+    def to_html(self, index=False) -> str:
         df = self._to_dataframe()
 
         # Convert DataFrame to HTML table and add explanation
-        html_table = df.to_html(index=False, border=1)
+        html_table = df.to_html(index=index, border=1)
 
         html_title = f"<h4>{self.header}</h4>\n"
         html_footer = (
@@ -69,7 +69,7 @@ class Result(ABC):
 
 class ADFResult(Result):
     def __init__(self, ts_name: str, data: dict):
-        super().__init__("ADF", ts_name, data)
+        super().__init__("ADF Test", ts_name, data)
         self.footer = "** IF p-value < 0.05 and/or statistic < statistic @ confidence interval, then REJECT the Null that the time series posses a unit root (non-stationary)."
 
     def _to_dataframe(self) -> pd.DataFrame:
@@ -97,7 +97,7 @@ class ADFResult(Result):
 
 class KPSSResult(Result):
     def __init__(self, ts_name: str, data: dict):
-        super().__init__("KPSS", ts_name, data)
+        super().__init__("KPSS Test", ts_name, data)
         self.footer = "\n** IF KPSS statistic > statistic @ confidence interval, then reject the NUll that time-series is stationary.\n"
 
     def _to_dataframe(self) -> pd.DataFrame:
@@ -122,7 +122,7 @@ class KPSSResult(Result):
 
 class PPResult(Result):
     def __init__(self, ts_name: str, data: dict):
-        super().__init__("Phillips Perron", ts_name, data)
+        super().__init__("Phillips Perron Test", ts_name, data)
         self.footer = "\n** IF p-value < 0.05, then REJECT the Null Hypothesis of a unit root (non-stationary time series)."
 
     def _to_dataframe(self) -> pd.DataFrame:
@@ -148,7 +148,7 @@ class PPResult(Result):
 
 class JohansenResult(Result):
     def __init__(self, data: dict, num_cointegrations: int, k_ar_diff: int):
-        super().__init__("Johansen", "", data)
+        super().__init__("Johansen Test", "", data)
         self.title = f"Johansen Cointegration Test : (Ideal lag = {k_ar_diff})"
         self.header = (
             f"Number of cointerated realtionships : {num_cointegrations}"
@@ -201,7 +201,7 @@ class JohansenResult(Result):
 
 class DurbinWatsonResult(Result):
     def __init__(self, ts_name: str, data: dict):
-        super().__init__("Durbin Watson", ts_name, data)
+        super().__init__("Durbin Watson Test", ts_name, data)
         self.footer = "** If the Durbin-Watson statistic is significantly different from 2 (either much less than 2 or much greater than 2), it suggests the presence of autocorrelation in the residuals.\n"
 
     def _to_dataframe(self) -> pd.DataFrame:
@@ -220,7 +220,7 @@ class DurbinWatsonResult(Result):
 
 class LjungBoxResult(Result):
     def __init__(self, ts_name: str, data: dict):
-        super().__init__("Ljung-Box", ts_name, data)
+        super().__init__("Ljung-Box Test", ts_name, data)
         self.footer = "** IF p-value < 0.05, then REJECT the Null Hypothesis of no autocorrelation (i.e., autocorrelation is present).\n"
 
     def _to_dataframe(self) -> pd.DataFrame:
@@ -247,7 +247,7 @@ class LjungBoxResult(Result):
 
 class ShapiroWilkResult(Result):
     def __init__(self, ts_name: str, data: dict):
-        super().__init__("Shapiro Wilk", ts_name, data)
+        super().__init__("Shapiro Wilk Test", ts_name, data)
         self.footer = "** If p-value < 0.05, then REJECT the Null Hypothesis of normality (i.e., data is not normally distributed).\n"
 
     def _to_dataframe(self) -> pd.DataFrame:
@@ -267,7 +267,7 @@ class ShapiroWilkResult(Result):
 
 class BreuschPaganResult(Result):
     def __init__(self, ts_name: str, data: dict):
-        super().__init__("Breusch Pagan", ts_name, data)
+        super().__init__("Breusch Pagan Test", ts_name, data)
         self.footer = "** IF p-value < 0.05, then REJECT the Null Hypothesis of homoscedasticity (constant variance) in favor of heteroscedasticity (varying variance).\n"
 
     def _to_dataframe(self) -> pd.DataFrame:
@@ -289,7 +289,7 @@ class BreuschPaganResult(Result):
 
 class WhiteResult(Result):
     def __init__(self, ts_name: str, data: dict):
-        super().__init__("White", ts_name, data)
+        super().__init__("White Test", ts_name, data)
         self.footer = "** IF p-value < 0.05, then REJECT the Null Hypothesis of homoscedasticity (constant variance) in favor of heteroscedasticity (varying variance).\n"
 
     def _to_dataframe(self) -> pd.DataFrame:
@@ -309,7 +309,7 @@ class WhiteResult(Result):
 
 class GrangerCausalityResult(Result):
     def __init__(self, ts_name: str, data: dict):
-        super().__init__("Granger Causality", ts_name, data)
+        super().__init__("Granger Causality Test", ts_name, data)
         self.footer = "\n** IF p-value < significance level then REJECT the NUll and conclude that the lagged values of one time series can provide useful information for predicting the other time series."
 
     def _to_dataframe(self) -> pd.DataFrame:
