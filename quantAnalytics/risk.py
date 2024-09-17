@@ -1,14 +1,41 @@
 import numpy as np
 import pandas as pd
+from quantAnalytics.statistics import Result
+
+
+class AnnualizedVolZScore(Result):
+    def __init__(self, name: str, data: dict):
+        super().__init__("Annualized Volatility Z-Score", name, data)
+        self.footer = "** Note: Z-scores provide a statistical measure of the volatility's deviation from its mean, with larger absolute values indicating more significant deviations."
+
+    def _to_dataframe(self) -> pd.DataFrame:
+        # Convert validation results to DataFrame
+        data = []
+        row = {
+            "Name": self.timeseries_name,
+            "Annualized Volatility": self.data["Annualized Volatility"],
+            "Annualized Mean Return": round(
+                self.data["Annualized Mean Return"], 6
+            ),
+        }
+
+        i = 1
+        for key, value in self.data["Z-Scores (Annualized)"].items():
+            row.update({f"Z-score for {i} SD (annualized)": value})
+            i += 1
+        data.append(row)
+
+        return pd.DataFrame(data)
+
 
 class RiskAnalysis:
     @staticmethod
-    def drawdown(returns:np.ndarray, decimals: int=6) -> np.ndarray:
+    def drawdown(returns: np.ndarray, decimals: int = 6) -> np.ndarray:
         """
         Calculate the drawdown of a series of returns.
 
-        This method calculates the drawdown, which is the decline from a historical peak in 
-        cumulative returns, for each point in the returns series. The drawdown values are in 
+        This method calculates the drawdown, which is the decline from a historical peak in
+        cumulative returns, for each point in the returns series. The drawdown values are in
         decimal format.
 
         Parameters:
@@ -20,24 +47,30 @@ class RiskAnalysis:
         """
         if not isinstance(returns, np.ndarray):
             raise TypeError("returns must be a numpy array")
-        
+
         if len(returns) == 0:
             return np.array([0])
-        
+
         try:
-            cumulative_returns = np.cumprod(1 + returns)  # Calculate cumulative returns
-            rolling_max = np.maximum.accumulate(cumulative_returns)  # Calculate the rolling maximum
-            drawdowns = (cumulative_returns - rolling_max) / rolling_max  # Calculate drawdowns in decimal format
+            cumulative_returns = np.cumprod(
+                1 + returns
+            )  # Calculate cumulative returns
+            rolling_max = np.maximum.accumulate(
+                cumulative_returns
+            )  # Calculate the rolling maximum
+            drawdowns = (
+                cumulative_returns - rolling_max
+            ) / rolling_max  # Calculate drawdowns in decimal format
             return np.around(drawdowns, decimals=decimals)
         except Exception as e:
             raise Exception(f"Error calculating drawdown : {e}")
-        
+
     @staticmethod
-    def max_drawdown(returns:np.ndarray, decimals: int=6) -> np.ndarray:
+    def max_drawdown(returns: np.ndarray, decimals: int = 6) -> np.ndarray:
         """
         Calculate the maximum drawdown of a series of returns.
 
-        This method calculates the maximum drawdown, which is the largest decline from a peak 
+        This method calculates the maximum drawdown, which is the largest decline from a peak
         to a trough in the returns series. The drawdown values are in decimal format.
 
         Parameters:
@@ -49,10 +82,10 @@ class RiskAnalysis:
         """
         if not isinstance(returns, np.ndarray):
             raise TypeError("returns must be a numpy array")
-        
+
         if len(returns) == 0:
             return np.array([0])
-        
+
         try:
             drawdowns = RiskAnalysis.drawdown(returns, decimals)
             max_drawdown = np.min(drawdowns)  # Find the maximum drawdown
@@ -61,7 +94,7 @@ class RiskAnalysis:
             raise Exception(f"Error calculating max drawdown : {e}")
 
     @staticmethod
-    def standard_deviation(returns:np.ndarray, decimals: int=6) -> float:
+    def standard_deviation(returns: np.ndarray, decimals: int = 6) -> float:
         """
         Calculate the standard deviation of given returns.
 
@@ -75,22 +108,26 @@ class RiskAnalysis:
 
         if not isinstance(returns, np.ndarray):
             raise TypeError("returns must be a numpy array")
-        
+
         if len(returns) == 0:
             return np.array([0])
-        
+
         try:
-            std_dev = np.std(returns, ddof=1) 
+            std_dev = np.std(returns, ddof=1)
             return np.around(std_dev, decimals=decimals)
         except Exception as e:
-            raise Exception(f"Error calculating annualized standard deviation : {e}")
-    
+            raise Exception(
+                f"Error calculating annualized standard deviation : {e}"
+            )
+
     @staticmethod
-    def annual_standard_deviation(returns:np.ndarray, decimals: int=6) -> float:
+    def annual_standard_deviation(
+        returns: np.ndarray, decimals: int = 6
+    ) -> float:
         """
         Calculate the annualized standard deviation of returns.
 
-        This method calculates the annualized standard deviation of returns from a numpy array 
+        This method calculates the annualized standard deviation of returns from a numpy array
         of daily returns. It assumes 252 trading days in a year.
 
         Parameters:
@@ -103,24 +140,32 @@ class RiskAnalysis:
 
         if not isinstance(returns, np.ndarray):
             raise TypeError("returns must be a numpy array")
-        
+
         if len(returns) == 0:
             return np.array([0])
-        
+
         try:
-            daily_std_dev = np.std(returns, ddof=1)  # Calculate daily standard deviation
-            annual_std_dev = daily_std_dev * np.sqrt(252)  # Assuming 252 trading days in a year
+            daily_std_dev = np.std(
+                returns, ddof=1
+            )  # Calculate daily standard deviation
+            annual_std_dev = daily_std_dev * np.sqrt(
+                252
+            )  # Assuming 252 trading days in a year
             return np.around(annual_std_dev, decimals=decimals)
         except Exception as e:
-            raise Exception(f"Error calculating annualized standard deviation : {e}")
-        
+            raise Exception(
+                f"Error calculating annualized standard deviation : {e}"
+            )
+
     @staticmethod
-    def sharpe_ratio(returns:np.ndarray, risk_free_rate:float=0.04, decimals: int=6) -> float:
+    def sharpe_ratio(
+        returns: np.ndarray, risk_free_rate: float = 0.04, decimals: int = 6
+    ) -> float:
         """
         Calculate the Sharpe ratio of the strategy.
 
-        The Sharpe ratio measures the performance of an investment compared to a risk-free asset, 
-        after adjusting for its risk. The ratio is the average return earned in excess of the risk-free 
+        The Sharpe ratio measures the performance of an investment compared to a risk-free asset,
+        after adjusting for its risk. The ratio is the average return earned in excess of the risk-free
         rate per unit of volatility or total risk.
 
         Parameters:
@@ -133,32 +178,42 @@ class RiskAnalysis:
         """
         if not isinstance(returns, np.ndarray):
             raise TypeError("returns must be a numpy array")
-        
+
         if len(returns) == 0:
             return np.array([0])
-            
+
         try:
             daily_risk_free_rate = risk_free_rate / 252
             excess_returns = returns - daily_risk_free_rate
-                 
+
             # Annualized calculations
             annualized_avg_excess_return = excess_returns.mean() * 252
-            annualized_std_excess_return = excess_returns.std(ddof=1)  * np.sqrt(252)
+            annualized_std_excess_return = excess_returns.std(
+                ddof=1
+            ) * np.sqrt(252)
 
             # Sharpe
-            sharpe_ratio = annualized_avg_excess_return / annualized_std_excess_return
+            sharpe_ratio = (
+                annualized_avg_excess_return / annualized_std_excess_return
+            )
 
-            return np.around(sharpe_ratio, decimals=decimals) if excess_returns.std(ddof=1) != 0 else 0
+            return (
+                np.around(sharpe_ratio, decimals=decimals)
+                if excess_returns.std(ddof=1) != 0
+                else 0
+            )
         except Exception as e:
             raise Exception(f"Error calculating sharpe ratio : {e}")
-        
+
     @staticmethod
-    def sortino_ratio(returns:np.ndarray, risk_free_rate:float=0.04, decimals: int=6) -> float:
+    def sortino_ratio(
+        returns: np.ndarray, risk_free_rate: float = 0.04, decimals: int = 6
+    ) -> float:
         """
         Calculate the Sortino Ratio for a given returns array.
 
-        The Sortino ratio differentiates harmful volatility from total overall volatility 
-        by using the asset's standard deviation of negative returns, called downside deviation. 
+        The Sortino ratio differentiates harmful volatility from total overall volatility
+        by using the asset's standard deviation of negative returns, called downside deviation.
         It measures the risk-adjusted return of an investment asset, portfolio, or strategy.
 
         Parameters:
@@ -171,10 +226,10 @@ class RiskAnalysis:
         """
         if not isinstance(returns, np.ndarray):
             raise TypeError("returns must be a numpy array")
-        
-        if len(returns) ==0:
+
+        if len(returns) == 0:
             return 0
-        
+
         try:
             daily_risk_free_rate = risk_free_rate / 252
             excess_returns = returns - daily_risk_free_rate
@@ -186,18 +241,26 @@ class RiskAnalysis:
             annualized_avg_excess_return = avg_excess_return * 252
             annualized_downside_deviation = downside_deviation * np.sqrt(252)
 
-            sortino_ratio = annualized_avg_excess_return / annualized_downside_deviation
-            return np.around(sortino_ratio, decimals=decimals) if annualized_downside_deviation != 0 else 0
+            sortino_ratio = (
+                annualized_avg_excess_return / annualized_downside_deviation
+            )
+            return (
+                np.around(sortino_ratio, decimals=decimals)
+                if annualized_downside_deviation != 0
+                else 0
+            )
         except Exception as e:
             raise Exception(f"Error calculating sortino ratio : {e}")
 
     @staticmethod
-    def value_at_risk(returns:np.ndarray, confidence_level:float=0.05) -> float:
+    def value_at_risk(
+        returns: np.ndarray, confidence_level: float = 0.05
+    ) -> float:
         """
         Calculate the Value at Risk (VaR) at a specified confidence level using historical returns.
 
-        VaR is a statistical technique used to measure the risk of loss on a specific portfolio of 
-        financial assets. It estimates how much a set of investments might lose, given normal market 
+        VaR is a statistical technique used to measure the risk of loss on a specific portfolio of
+        financial assets. It estimates how much a set of investments might lose, given normal market
         conditions, in a set time period such as a day.
 
         Parameters:
@@ -209,17 +272,19 @@ class RiskAnalysis:
         """
         if not isinstance(returns, np.ndarray):
             raise TypeError("returns must be a numpy array")
-        
+
         if len(returns) == 0:
             return np.nan
         return np.percentile(returns, confidence_level * 100)
 
     @staticmethod
-    def conditional_value_at_risk(returns:np.ndarray, confidence_level:float=0.05) -> float:
+    def conditional_value_at_risk(
+        returns: np.ndarray, confidence_level: float = 0.05
+    ) -> float:
         """
         Calculate the Conditional Value at Risk (CVaR) at a specified confidence level using historical returns.
 
-        CVaR, also known as Expected Shortfall (ES), measures the average loss that occurs beyond the VaR point, 
+        CVaR, also known as Expected Shortfall (ES), measures the average loss that occurs beyond the VaR point,
         providing a more complete picture of tail risk.
 
         Parameters:
@@ -240,104 +305,56 @@ class RiskAnalysis:
         return cvar
 
     @staticmethod
-    def calculate_volatility_and_zscore_annualized(returns:np.ndarray) -> dict:
+    def calculate_volatility_and_zscore_annualized(
+        returns: np.ndarray,
+    ) -> Result:
         """
         Calculate the strategy's annualized volatility and z-scores for 1, 2, and 3 standard deviation moves.
 
-        This method calculates the annualized volatility and mean return from daily returns and provides 
+        This method calculates the annualized volatility and mean return from daily returns and provides
         z-scores adjusted for annualized values.
 
         Parameters:
         - returns (np.ndarray): A 1D array of daily returns.
 
         Returns:
-        - dict: A dictionary containing annualized volatility, annualized mean return, and z-scores 
+        - dict: A dictionary containing annualized volatility, annualized mean return, and z-scores
                 for 1, 2, and 3 standard deviation moves.
         """
         if not isinstance(returns, np.ndarray):
             raise TypeError("returns must be a numpy array")
-        
+
         if len(returns) == 0:
             return {
                 "Annualized Volatility": 0,
                 "Annualized Mean Return": 0,
-                "Z-Scores (Annualized)": {}
+                "Z-Scores (Annualized)": {},
             }
 
         try:
             daily_volatility = returns.std()
             daily_mean_return = returns.mean()
-            
+
             # Annualizing the daily volatility and mean return
             annualized_volatility = daily_volatility * np.sqrt(252)
             annualized_mean_return = daily_mean_return * 252
-            
+
             # Adjusting the calculation of z-scores for annualized values
-            z_scores_annualized = {f"Z-score for {x} SD move (annualized)": (annualized_mean_return - x * annualized_volatility) / annualized_volatility for x in range(1, 4)}
-            return {
+            z_scores_annualized = {
+                f"Z-score for {x} SD move (annualized)": (
+                    annualized_mean_return - x * annualized_volatility
+                )
+                / annualized_volatility
+                for x in range(1, 4)
+            }
+            output = {
                 "Annualized Volatility": annualized_volatility,
                 "Annualized Mean Return": annualized_mean_return,
-                "Z-Scores (Annualized)": z_scores_annualized
+                "Z-Scores (Annualized)": z_scores_annualized,
             }
+
+            return AnnualizedVolZScore("", output)
         except Exception as e:
-            raise Exception(f"Error calculating annualized volatility and z-scores : {e}")
-
-    @staticmethod
-    def display_volatility_zscore_results(volatility_zscore_results:dict, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
-        """
-        Display the volatility Z-score analysis results.
-
-        This function formats the volatility Z-score analysis results into a human-readable format, either as a plain text table or an HTML table.
-        It includes annualized volatility, annualized mean return, and a series of Z-scores, providing a comprehensive view of volatility dynamics.
-
-        Parameters:
-        - volatility_zscore_results (dict): A dictionary containing the volatility Z-score results.
-        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
-        - to_html (bool): If True, the results are formatted as an HTML string. If False, they are formatted as plain text.
-        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
-
-        Returns:
-        - str: The formatted volatility Z-score results as a string (plain text or HTML).
-        """
-        # Convert validation results to DataFrame
-        data = []
-        row = {'Annualized Volatility': volatility_zscore_results['Annualized Volatility'], 'Annualized Mean Return': round(volatility_zscore_results['Annualized Mean Return'],6)}
-       
-        i = 1
-        for key, value in volatility_zscore_results['Z-Scores (Annualized)'].items():
-            row.update({f'Z-score for {i} SD (annualized)': value})
-            i+=1
-        data.append(row)
-        df = pd.DataFrame(data)
-
-        title = "zscore volatility Results"
-        footer = "** Note: Z-scores provide a statistical measure of the volatility's deviation from its mean, with larger absolute values indicating more significant deviations."
-        
-        if to_html:
-            # Define the base indentation as a string of spaces
-            base_indent = "    " * indent
-            next_indent = "    " * (indent + 1)
-            
-            # Convert DataFrame to HTML table and add explanation
-            html_table = df.to_html(index=False, border=1)
-            html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
-
-            html_title = f"{next_indent}<h4>{title}</h4>\n"
-            html_footer = f"{next_indent}<p class='footnote'>{footer}</p>\n"
-            html_output = f"{base_indent}<div class='beta_analysis'>\n{html_title}{html_table}\n{html_footer}{base_indent}</div>"
-            
-            return html_output
-        
-        else:
-            output = (
-                f"\n{title}\n"
-                f"{'=' * len(title)}\n"
-                f"{df.to_string(index=False)}\n"
-                f"{footer}"
+            raise Exception(
+                f"Error calculating annualized volatility and z-scores : {e}"
             )
-            if print_output:
-                print(output)
-            else:
-                return output
-
-    

@@ -1,12 +1,10 @@
 import unittest
 import numpy as np
 import pandas as pd
-from unittest.mock import Mock, patch
+from quantAnalytics.risk import RiskAnalysis, AnnualizedVolZScore
 
-from quantAnalytics.risk import RiskAnalysis
 
-# TODO: edge cases
-class TestRiskAnalysis(unittest.TestCase):    
+class TestRiskAnalysis(unittest.TestCase):
     def setUp(self):
         # Sample equity curve and trade log for testing
         self.equity_curve = np.array([100, 105, 103, 110, 108])
@@ -16,17 +14,19 @@ class TestRiskAnalysis(unittest.TestCase):
     # Basic Validation
     def test_drawdown(self):
         # expected
-        expected_drawdowns = np.array([ 0, -0.01914, 0, -0.01818])
+        expected_drawdowns = np.array([0, -0.01914, 0, -0.01818])
 
         # test
         drawdowns = RiskAnalysis.drawdown(self.returns)
 
         # validate
-        np.testing.assert_array_almost_equal(drawdowns, expected_drawdowns, decimal=4)
+        np.testing.assert_array_almost_equal(
+            drawdowns, expected_drawdowns, decimal=4
+        )
 
     def test_max_drawdown(self):
         # expected
-        expected_max_drawdown = -0.019048 
+        expected_max_drawdown = -0.019048
 
         # test
         max_drawdown = RiskAnalysis.max_drawdown(self.returns)
@@ -42,7 +42,9 @@ class TestRiskAnalysis(unittest.TestCase):
         annual_std_dev = RiskAnalysis.standard_deviation(self.returns)
 
         # validate
-        self.assertAlmostEqual(annual_std_dev, expected_annual_std_dev, places=4)
+        self.assertAlmostEqual(
+            annual_std_dev, expected_annual_std_dev, places=4
+        )
 
     def test_annual_standard_deviation(self):
         # expected
@@ -52,35 +54,49 @@ class TestRiskAnalysis(unittest.TestCase):
         annual_std_dev = RiskAnalysis.annual_standard_deviation(self.returns)
 
         # validate
-        self.assertAlmostEqual(annual_std_dev, expected_annual_std_dev, places=4)
+        self.assertAlmostEqual(
+            annual_std_dev, expected_annual_std_dev, places=4
+        )
 
     def test_sharpe_ratio(self):
-        daily_returns = np.diff(self.equity_curve) / self.equity_curve[:-1] # Calculate daily returns
-        excess_returns = daily_returns - (0.04 / 252) # Excess returns calculation
-        sharpe_ratio = excess_returns.mean() / excess_returns.std(ddof=1) * np.sqrt(252)
-        expected_sharpe_ratio = np.around(sharpe_ratio, decimals=4) if excess_returns.std(ddof=1) != 0 else 0
+        daily_returns = (
+            np.diff(self.equity_curve) / self.equity_curve[:-1]
+        )  # Calculate daily returns
+        excess_returns = daily_returns - (
+            0.04 / 252
+        )  # Excess returns calculation
+        sharpe_ratio = (
+            excess_returns.mean() / excess_returns.std(ddof=1) * np.sqrt(252)
+        )
+        expected_sharpe_ratio = (
+            np.around(sharpe_ratio, decimals=4)
+            if excess_returns.std(ddof=1) != 0
+            else 0
+        )
 
         # test
         sharpe_ratio = RiskAnalysis.sharpe_ratio(self.returns)
-        
+
         # validate
         self.assertAlmostEqual(sharpe_ratio, expected_sharpe_ratio, places=3)
 
     def test_sortino_ratio(self):
         # expected
-        target_return = 0.04/252
+        target_return = 0.04 / 252
         negative_returns = self.returns[self.returns < target_return]
         expected_return = self.returns.mean() - target_return
         downside_deviation = negative_returns.std(ddof=1)
 
         if downside_deviation > 0:
-            expected_sortino_ratio = expected_return / downside_deviation * np.sqrt(252)
+            expected_sortino_ratio = (
+                expected_return / downside_deviation * np.sqrt(252)
+            )
         else:
             expected_sortino_ratio = 0.0
 
         # test
         sortino_ratio = RiskAnalysis.sortino_ratio(self.returns)
-        
+
         # validate
         self.assertAlmostEqual(sortino_ratio, expected_sortino_ratio, places=4)
 
@@ -108,35 +124,50 @@ class TestRiskAnalysis(unittest.TestCase):
         # expected
         annualized_volatility = self.returns.std() * np.sqrt(252)
         annualized_mean_return = self.returns.mean() * 252
-        
-        # test
-        volatility_results = RiskAnalysis.calculate_volatility_and_zscore_annualized(self.returns)
-
-        # validate
-        z_score_dict  = volatility_results["Z-Scores (Annualized)"]
-        self.assertEqual(volatility_results['Annualized Volatility'], annualized_volatility)
-        self.assertEqual(volatility_results["Annualized Mean Return"], annualized_mean_return)
-        self.assertGreater(z_score_dict['Z-score for 1 SD move (annualized)'], 0)
-        self.assertGreater(z_score_dict['Z-score for 2 SD move (annualized)'], 0)
-        self.assertGreater(z_score_dict['Z-score for 3 SD move (annualized)'], 0)
-
-
-    def test_display_volatility_zscore_results(self):
-        volatility_zscore_results={'Annualized Volatility': 0.21862629936907577, 'Annualized Mean Return': 0.12302713066962165, 'Z-Scores (Annualized)': {'Z-score for 1 SD move (annualized)': -0.43727204355258104, 'Z-score for 2 SD move (annualized)': -1.4372720435525812, 'Z-score for 3 SD move (annualized)': -2.437272043552581}}
 
         # test
-        result = RiskAnalysis.display_volatility_zscore_results(volatility_zscore_results, False, False)
-
-        # expected
-        expected = (f"zscore volatility Results"
-                    f"========================="
-                    f"Annualized Volatility  Annualized Mean Return  Z-score for 1 SD (annualized)  Z-score for 2 SD (annualized)  Z-score for 3 SD (annualized)"
-                    f"0.218626                0.123027                      -0.437272                      -1.437272                      -2.437272"
-                    f"** R-squared should be above the threshold and p-values should be below the threshold for model validity."
+        volatility_results = (
+            RiskAnalysis.calculate_volatility_and_zscore_annualized(
+                self.returns
+            )
         )
 
         # validate
-        self.assertTrue(len(result) > 0)
+        z_score_dict = volatility_results.data["Z-Scores (Annualized)"]
+        self.assertEqual(
+            volatility_results.data["Annualized Volatility"],
+            annualized_volatility,
+        )
+        self.assertEqual(
+            volatility_results.data["Annualized Mean Return"],
+            annualized_mean_return,
+        )
+        self.assertGreater(
+            z_score_dict["Z-score for 1 SD move (annualized)"], 0
+        )
+        self.assertGreater(
+            z_score_dict["Z-score for 2 SD move (annualized)"], 0
+        )
+        self.assertGreater(
+            z_score_dict["Z-score for 3 SD move (annualized)"], 0
+        )
+
+    def test_display_volatility_zscore_results(self):
+        volatility_zscore_results = {
+            "Annualized Volatility": 0.21862629936907577,
+            "Annualized Mean Return": 0.12302713066962165,
+            "Z-Scores (Annualized)": {
+                "Z-score for 1 SD move (annualized)": -0.43727204355258104,
+                "Z-score for 2 SD move (annualized)": -1.4372720435525812,
+                "Z-score for 3 SD move (annualized)": -2.437272043552581,
+            },
+        }
+
+        # Test
+        result = AnnualizedVolZScore("test", volatility_zscore_results)
+
+        # Validate
+        self.assertTrue(len(result.to_html()) > 0)
 
     # Type Constraints
     def test_drawdown_type_check(self):
@@ -146,7 +177,7 @@ class TestRiskAnalysis(unittest.TestCase):
     def test_max_drawdown_type_check(self):
         with self.assertRaises(TypeError):
             RiskAnalysis.max_drawdown([10, -5, 15])
-    
+
     def test_annual_standard_deviation_type_check(self):
         with self.assertRaises(TypeError):
             RiskAnalysis.annual_standard_deviation([10, -5, 15])
@@ -155,7 +186,7 @@ class TestRiskAnalysis(unittest.TestCase):
         with self.assertRaises(TypeError):
             RiskAnalysis.sharpe_ratio([10, -5, 15])
 
-    def test_sortino_ratio_type_check(self):        
+    def test_sortino_ratio_type_check(self):
         # Test with incorrect type (should raise an error or handle gracefully)
         with self.assertRaises(TypeError):
             RiskAnalysis.sortino_ratio([10, -5, 15])
@@ -164,12 +195,12 @@ class TestRiskAnalysis(unittest.TestCase):
         with self.assertRaises(TypeError):
             RiskAnalysis.sortino_ratio(pd.DataFrame())
 
-    def test_value_at_risk_type_check(self):        
+    def test_value_at_risk_type_check(self):
         # Test with incorrect type (should raise an error or handle gracefully)
         with self.assertRaises(TypeError):
             RiskAnalysis.value_at_risk([10, -5, 15])
 
-    def test_conditional_value_at_risk_type_check(self):        
+    def test_conditional_value_at_risk_type_check(self):
         # Test with incorrect type (should raise an error or handle gracefully)
         with self.assertRaises(TypeError):
             RiskAnalysis.conditional_value_at_risk([10, -5, 15])
@@ -184,7 +215,9 @@ class TestRiskAnalysis(unittest.TestCase):
 
         # validate
         self.assertIsInstance(result, np.ndarray)
-        self.assertEqual(len(result), 1)  # Expecting an array with a single zero
+        self.assertEqual(
+            len(result), 1
+        )  # Expecting an array with a single zero
 
     def test_max_drawdown_null_handling(self):
         list = []
@@ -212,10 +245,10 @@ class TestRiskAnalysis(unittest.TestCase):
         # Test with empty input
         list = []
         equity_curve = np.array(list)
-        
+
         # test
         result = RiskAnalysis.sharpe_ratio(equity_curve)
-        
+
         # validate
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result, 0)  # Expecting an array with a single zero
