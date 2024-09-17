@@ -31,7 +31,11 @@ class TestVisualization(unittest.TestCase):
 
         # Test
         fig = Visualization.line_plot(
-            x, y, title="Test Line Plot", x_label="Index", y_label="Random Value"
+            x,
+            y,
+            title="Test Line Plot",
+            x_label="Index",
+            y_label="Random Value",
         )
 
         # Show
@@ -44,8 +48,12 @@ class TestVisualization(unittest.TestCase):
     def test_multi_line_plot(self):
         # Creating dummy data
         data = {
-            "Series 1": pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=[1, 2, 3]),
-            "Series 2": pd.DataFrame({"A": [1, 1, 2], "B": [6, 5, 4]}, index=[1, 2, 3]),
+            "Series 1": pd.DataFrame(
+                {"A": [1, 2, 3], "B": [4, 5, 6]}, index=[1, 2, 3]
+            ),
+            "Series 2": pd.DataFrame(
+                {"A": [1, 1, 2], "B": [6, 5, 4]}, index=[1, 2, 3]
+            ),
         }
 
         # Custom styles
@@ -79,8 +87,16 @@ class TestVisualization(unittest.TestCase):
 
         # Example markers with custom field names
         markers = [
-            {"time": "2023-01-01", "value": 101, "signal": 1},  # Positive marker
-            {"time": "2023-01-02", "value": 49, "signal": -1},  # Negative marker
+            {
+                "time": "2023-01-01",
+                "value": 101,
+                "signal": 1,
+            },  # Positive marker
+            {
+                "time": "2023-01-02",
+                "value": 49,
+                "signal": -1,
+            },  # Negative marker
             {
                 "time": "2023-01-03",
                 "value": 103,
@@ -123,7 +139,9 @@ class TestVisualization(unittest.TestCase):
         )
 
         # Sample secondary data
-        secondary_data = pd.Series(np.random.normal(0, 1, 50), index=index_values)
+        secondary_data = pd.Series(
+            np.random.normal(0, 1, 50), index=index_values
+        )
 
         # Example standard deviation bands
         std_1 = secondary_data.rolling(window=20).std()
@@ -153,7 +171,9 @@ class TestVisualization(unittest.TestCase):
     def test_line_plot_with_std(self):
         # Sample series data
         index_values = pd.date_range("2023-01-01", periods=100)
-        series_data = pd.Series(np.random.normal(0, 1, 100), index=index_values)
+        series_data = pd.Series(
+            np.random.normal(0, 1, 100), index=index_values
+        )
 
         # Plot the series with rolling statistics
         fig = Visualization.line_plot_with_std(
@@ -216,10 +236,48 @@ class TestVisualization(unittest.TestCase):
         # Validate
         self.assertIsInstance(fig, Figure)
 
+    def test_histogram_ndc(self):
+        # Create sample data
+        data = np.random.normal(loc=0, scale=1, size=1000)
+
+        # test
+        fig = Visualization.histogram_ndc(
+            data, bins="auto", title="Test Histogram with NDC"
+        )
+
+        # validate
+        self.assertIsInstance(fig, plt.Figure)
+        self.assertTrue(len(fig.axes[0].lines) >= 1)
+        self.assertTrue(len(fig.axes[0].patches) > 0)
+
+    def test_histogram_kde(self):
+        # Create sample data
+        data = np.random.normal(loc=0, scale=1, size=1000)
+
+        # test
+        fig = Visualization.histogram_kde(
+            data, bins="auto", title="Test Histogram with KDE"
+        )
+
+        # validate
+        self.assertIsInstance(fig, plt.Figure)
+        self.assertTrue(len(fig.axes[0].lines) > 0)
+        self.assertTrue(len(fig.axes[0].patches) > 0)
+
+    def test_qq_plot(self):
+        # Create sample data
+        data = np.random.normal(loc=0, scale=1, size=1000)
+
+        # test
+        fig = Visualization.qq_plot(data, title="Test Q-Q Plot")
+
+        # validate
+        self.assertIsInstance(fig, plt.Figure)
+        self.assertTrue(len(fig.axes[0].lines) > 0)
+
     def tearDown(self):
         plt.close("all")
 
 
 if __name__ == "__main__":
     unittest.main()
-

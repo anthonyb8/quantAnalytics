@@ -2,6 +2,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from typing import Dict, Optional
+import numpy as np
+import seaborn as sns
+import scipy.stats as stats
+from scipy.stats import norm
 
 
 class Visualization:
@@ -187,7 +191,11 @@ class Visualization:
 
         # Plot the data lines
         for symbol in data.columns:
-            line_style = line_styles[symbol] if line_styles and symbol in line_styles else "-"
+            line_style = (
+                line_styles[symbol]
+                if line_styles and symbol in line_styles
+                else "-"
+            )
             color = colors[symbol] if colors and symbol in colors else None
             ax.plot(
                 data.index,
@@ -312,7 +320,13 @@ class Visualization:
 
         # Create a secondary axis for secondary data (right y-axis)
         ax2 = ax1.twinx()
-        ax2.plot(x_values, secondary_data, label=secondary_label, color="purple", linewidth=2)
+        ax2.plot(
+            x_values,
+            secondary_data,
+            label=secondary_label,
+            color="purple",
+            linewidth=2,
+        )
         ax2.set_ylabel(secondary_y_label)
 
         # Plot standard deviation bands if provided
@@ -339,7 +353,9 @@ class Visualization:
 
         # Draw a dashed vertical line to separate test and training data if a split index is provided
         if split_index is not None:
-            ax1.axvline(x=split_index, color="black", linestyle="--", linewidth=1)
+            ax1.axvline(
+                x=split_index, color="black", linestyle="--", linewidth=1
+            )
 
         # Add grid lines and format x-axis labels for better readability
         ax1.grid(True)
@@ -399,8 +415,12 @@ class Visualization:
 
         # Calculate rolling mean and standard deviations for the series
         series_mean = series.rolling(window=window).mean()
-        series_std_1 = series.rolling(window=window).std()  # 1 standard deviation
-        series_std_2 = 2 * series.rolling(window=window).std()  # 2 standard deviations
+        series_std_1 = series.rolling(
+            window=window
+        ).std()  # 1 standard deviation
+        series_std_2 = (
+            2 * series.rolling(window=window).std()
+        )  # 2 standard deviations
 
         # Create a secondary axis for mean and standard deviations (right y-axis)
         ax2 = ax1.twinx()
@@ -524,7 +544,13 @@ class Visualization:
 
         # Create a secondary axis for secondary data (right y-axis)
         ax2 = ax1.twinx()
-        ax2.plot(x_values, secondary_data, label=secondary_label, color="purple", linewidth=2)
+        ax2.plot(
+            x_values,
+            secondary_data,
+            label=secondary_label,
+            color="purple",
+            linewidth=2,
+        )
         ax2.set_ylabel(y_label_secondary)
 
         # Plot standard deviation bands if provided
@@ -566,11 +592,15 @@ class Visualization:
                 marker_shape = "o"
                 color = "gray"
 
-            ax1.scatter(x_value, y_value, marker=marker_shape, color=color, s=100)
+            ax1.scatter(
+                x_value, y_value, marker=marker_shape, color=color, s=100
+            )
 
         # Draw a dashed vertical line to separate test and training data if a split index is provided
         if split_index is not None:
-            ax1.axvline(x=split_index, color="black", linestyle="--", linewidth=1)
+            ax1.axvline(
+                x=split_index, color="black", linestyle="--", linewidth=1
+            )
 
         # Add grid lines and format x-axis labels for better readability
         ax1.grid(True)
@@ -583,6 +613,124 @@ class Visualization:
         # Adjust layout to minimize white space
         plt.tight_layout()
 
+        return fig
+
+    @staticmethod
+    def histogram_ndc(
+        data: pd.Series,
+        bins: str = "auto",
+        title: str = "Histogram with Normal Distribution Curve",
+    ) -> plt.Figure:
+        """
+        Create a histogram for the given data and overlay a normal distribution fit.
+
+        Parameters:
+        - data (array-like): The dataset for which the histogram is to be created.
+        - bins (int or sequence or str): Specification of bin sizes. Default is 'auto'.
+        - title (str): Title of the plot.
+
+        Returns:
+        - plt.Figure: A histogram with a normal distribution fit.
+
+        Example:
+        >>> TimeseriesTests.histogram_ndc(data, bins='auto', title='Test Histogram with NDC')
+        >>> plt.show()
+
+        """
+        # Convert data to a numpy array if it's not already
+        data = np.asarray(data)
+
+        # Create figure and axis
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Generate histogram
+        sns.histplot(
+            data, bins=bins, kde=False, color="blue", stat="density", ax=ax
+        )
+
+        # Fit and overlay a normal distribution
+        mean, std = norm.fit(data)
+        xmin, xmax = ax.get_xlim()
+        x = np.linspace(xmin, xmax, 100)
+        p = norm.pdf(x, mean, std)
+        ax.plot(x, p, "k", linewidth=2)
+
+        title += f"\n Fit Results: Mean = {mean:.2f},  Std. Dev = {std:.2f}"
+        ax.set_title(title)
+        ax.set_xlabel("Value")
+        ax.set_ylabel("Density")
+
+        # Return the figure object
+        return fig
+
+    @staticmethod
+    def histogram_kde(
+        data: pd.Series,
+        bins: str = "auto",
+        title: str = "Histogram with Kernel Density Estimate (KDE)",
+    ) -> plt.Figure:
+        """
+        Create a histogram for the given data to visually check for normal distribution.
+
+        Parameters:
+        - data (array-like): The dataset for which the histogram is to be created.
+        - bins (int or sequence or str): Specification of bin sizes. Default is 'auto'.
+        - title (str): Title of the plot.
+
+        Returns:
+        - plt.Figure: A histogram for assessing normality.
+
+        Example
+        >>> TimeseriesTests.histogram_kde(data, bins='auto', title='Test Histogram with KDE')
+        >>> plt.show()
+        """
+        # Convert data to a numpy array if it's not already
+        data = np.asarray(data)
+
+        # Create figure and axis
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Generate histogram with KDE
+        sns.histplot(data, bins=bins, kde=True, color="blue", ax=ax)
+
+        ax.set_title(title)
+        ax.set_xlabel("Value")
+        ax.set_ylabel("Frequency")
+
+        # Return the figure object
+        return fig
+
+    @staticmethod
+    def qq_plot(data: pd.Series, title: str = "Q-Q Plot") -> plt.Figure:
+        """
+        Create a Q-Q plot for the given data comparing it against a normal distribution.
+
+        Parameters:
+        - data (array-like): The dataset for which the Q-Q plot is to be created.
+        - title (str): Title of the plot.
+
+        Returns:
+        - plt.Figure: A Q-Q plot.
+
+        Example:
+        >>> TimeseriesTests.qq_plot(data, title='Test Q-Q Plot')
+        >>> plt.show()
+        """
+        # Convert data to a numpy array if it's not already
+        data = np.asarray(data)
+
+        # Create figure and axis
+        fig, ax = plt.subplots(figsize=(6, 6))
+
+        # Generate Q-Q plot
+        stats.probplot(data, dist="norm", plot=ax)
+
+        # Add title and labels
+        ax.set_title(title)
+        ax.set_xlabel("Theoretical Quantiles")
+        ax.set_ylabel("Sample Quantiles")
+
+        # Return the figure object
         return fig
 
     # -- Old --
