@@ -4,7 +4,6 @@ import pandas as pd
 from scipy import stats
 import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller
-
 from quantAnalytics.statistics import TimeseriesTests
 
 
@@ -238,9 +237,9 @@ class TestTimeseriesTests(unittest.TestCase):
     def test_generate_trending_series_basic(self):
         n = 2000
         series = TimeseriesTests.generate_trending_series(
-            n=2000, start_value=0, trend=0.1, step_std=1
+            n=n, start_value=0, trend=0.1, step_std=1
         )
-        self.assertEqual(len(series), 2000)
+        self.assertEqual(len(series), n)
         self.assertEqual(series[0], 0)
         self.assertTrue(isinstance(series, np.ndarray))
 
@@ -890,7 +889,7 @@ class TestTimeseriesTests(unittest.TestCase):
         )
 
         # Create a lagged version of the series
-        series_lagged = series.shift(1).bfill()
+        # series_lagged = series.shift(1).bfill()
 
         # Calculate the half-life using the function under test
         calculated_half_life, _ = TimeseriesTests.half_life(

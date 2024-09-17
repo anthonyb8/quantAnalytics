@@ -153,7 +153,7 @@ class JohansenResult(Result):
         self.header = (
             f"Number of cointerated realtionships : {num_cointegrations}"
         )
-        self.footer = f"** IF Trace Statistic > Critical Value AND Max Eigenvalue > Critical Value then Reject Null of at most r cointegrating relationships.(r=0 in first test)"
+        self.footer = "** IF Trace Statistic > Critical Value AND Max Eigenvalue > Critical Value then Reject Null of at most r cointegrating relationships.(r=0 in first test)"
         self.num_cointegrations = num_cointegrations
 
     def _to_dataframe(self) -> pd.DataFrame:
@@ -235,7 +235,7 @@ class LjungBoxResult(Result):
             {
                 "Autocorrelation": (
                     "Absent"
-                    if self.data["significance"][0] == False
+                    if not self.data["significance"][0]  # == False
                     else "Present"
                 )
             }
@@ -852,7 +852,7 @@ class TimeseriesTests:
             x=adf_statistic_original,
             color="r",
             linestyle="--",
-            label=f"ADF Statistic of Original Series",
+            label="ADF Statistic of Original Series",
         )
         ax.set_title("Distribution of ADF Statistics from Simulations")
         ax.set_xlabel("ADF Statistic")

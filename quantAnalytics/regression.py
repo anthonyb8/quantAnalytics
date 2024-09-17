@@ -50,7 +50,7 @@ class RegressionAnalysis:
 
         if len(y) != len(X):
             raise ValueError(
-                f"Independent(X) and dependent(y) variables must be the same length."
+                "Independent(X) and dependent(y) variables must be the same length."
             )
 
         self.X = X
