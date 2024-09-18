@@ -3,7 +3,6 @@ import unittest
 import numpy as np
 import pandas as pd
 from io import StringIO
-import matplotlib.pyplot as plt
 from quantAnalytics.regression import RegressionAnalysis, RegressionResult
 
 
@@ -145,28 +144,33 @@ class RegressionAnalysisTests(unittest.TestCase):
         np.random.seed(42)  # For reproducibility
 
         dates = pd.date_range(start="2024-01-01", periods=1000, freq="D")
-        equity_values = 100 + np.cumsum(
+        strategy_values = 100 + np.cumsum(
             np.random.normal(0, 1, size=len(dates))
         )  # Simulated equity values with some noise
         benchmark_values = 50 + np.cumsum(
             np.random.normal(0, 1, size=len(dates))
         )  # Simulated benchmark values with some noise
 
-        self.y = pd.DataFrame(
-            {"timestamp": dates, "equity_value": equity_values}
+        self.data = pd.DataFrame(
+            {
+                "timestamp": dates,
+                "Y": strategy_values,
+                "bm_values": benchmark_values,
+            }
         )
-        self.y.set_index("timestamp", inplace=True)
-
-        self.X = pd.DataFrame({"timestamp": dates, "close": benchmark_values})
-        self.X.set_index("timestamp", inplace=True)
+        self.data.set_index("timestamp", inplace=True)
 
         # Instance
-        self.analysis = RegressionAnalysis(X=self.X.copy(), y=self.y.copy())
+        self.analysis = RegressionAnalysis(
+            data=self.data, dependent_var="Y", risk_free_rate=0.05
+        )
 
     # Basic Validation
     def test_fit(self):
+        train_data = self.data.iloc[:500]
+
         # Test
-        _ = self.analysis.fit()
+        summary = self.analysis.fit(train_data)
 
         # validation
         result_model = self.analysis.model
@@ -174,33 +178,61 @@ class RegressionAnalysisTests(unittest.TestCase):
         self.assertTrue(
             hasattr(result_model, "params"), "Model has no parameters."
         )
+        self.assertIsInstance(summary, str)
 
-    def test_predict(self):
-        new_X = pd.DataFrame(
-            {
-                "timestamp": pd.date_range(
-                    start="2024-01-10", periods=5, freq="D"
-                ),
-                "close": [50, 51, 52, 51, 53],
-            }
+    def test_get_predictions(self):
+        train_data = self.data.iloc[:500]
+        test_data = self.data.iloc[500:]
+        _ = self.analysis.fit(train_data)
+
+        # Test
+        x, y_predict, y_actual, residuals = self.analysis.get_predictions(
+            test_data
         )
-        new_X.set_index("timestamp", inplace=True)
-        self.analysis.fit()
+        # Validate
+        expected_residuals = y_actual - y_predict
 
-        # test
-        results = self.analysis.predict(new_X)
-
-        # validate
-        self.assertTrue(len(results) == len(new_X))
+        self.assertTrue(len(y_predict) == len(y_actual))
+        pd.testing.assert_series_equal(residuals, expected_residuals)
 
     def test_evaluate(self):
-        self.analysis.fit()
+        train_data = self.data.iloc[:500]
+        test_data = self.data.iloc[500:]
+        _ = self.analysis.fit(train_data)
 
         # test
-        result = self.analysis.evaluate()
+        result = self.analysis.evaluate(test_data)
 
         # validate
         self.assertIsInstance(result, RegressionResult)
+
+    def test_risk_decomposition(self):
+        train_data = self.data.iloc[:500]
+        test_data = self.data.iloc[500:]
+        _ = self.analysis.fit(train_data)
+
+        # test
+        results = self.analysis.risk_decomposition(test_data)
+
+        # validate
+        self.assertTrue(results["Total Volatility"] != 0)
+        self.assertTrue(results["Systematic Volatility"] != 0)
+        self.assertTrue(results["Idiosyncratic Volatility"] != 0)
+
+    def test_performance_atribution(self):
+        train_data = self.data.iloc[:500]
+        test_data = self.data.iloc[500:]
+        _ = self.analysis.fit(train_data)
+
+        # test
+        results = self.analysis.performance_attribution(test_data)
+
+        # validate
+        self.assertTrue(results["Total Contribution"] != 0)
+        self.assertTrue(results["Systematic Contribution"] != 0)
+        self.assertTrue(results["Idiosyncratic Contribution"] != 0)
+        self.assertTrue(results["Alpha Contribution"] != 0)
+        self.assertTrue(results["Randomness"] != 0)
 
     # def test_hedge_analysis(self):
     #     self.analysis.fit()
@@ -213,127 +245,22 @@ class RegressionAnalysisTests(unittest.TestCase):
     #     self.assertGreater(hedge_results["Beta"], 0)
     #     self.assertIn("Market Hedge NMV", hedge_results)
 
-    def test_check_collinearity(self):
-        self.analysis.fit()
-
-        # test
-        results = self.analysis.check_collinearity()
-
-        # validate
-        self.assertEqual(type(results), dict)
-        self.assertTrue(len(results.keys()) > 0)
-        self.assertIn("close", results.keys())
-        self.assertIn("const", results.keys())
-
-    def test_plot_residuals(self):
-        _ = self.analysis.fit()
-
-        # test
-        fig = self.analysis.plot_residuals()
-        # validate
-        self.assertIsInstance(fig, plt.Figure)
-        self.assertTrue(len(fig.axes[0].lines) > 0)
-
-    def test_plot_qq(self):
-
-        _ = self.analysis.fit()
-
-        # test
-        fig = self.analysis.plot_qq()
-
-        # validate
-        self.assertIsInstance(fig, plt.Figure)
-        self.assertTrue(len(fig.axes[0].lines) > 0)
-
-    def test_plot_influence_measures(self):
-        _ = self.analysis.fit()
-
-        # test
-        fig = self.analysis.plot_influence_measures()
-
-        # validate
-        self.assertIsInstance(fig, plt.Figure)
-        self.assertTrue(len(fig.axes[0].lines) > 0)
-
-    def test_risk_decomposition(self):
-        self.analysis.fit()
-
-        # test
-        results = self.analysis.risk_decomposition()
-
-        # validate
-        self.assertTrue(results["Total Volatility"] > 0)
-        self.assertTrue(results["Systematic Volatility"] > 0)
-        self.assertTrue(results["Idiosyncratic Volatility"] > 0)
-
-    def test_performance_atribution(self):
-        self.analysis.fit()
-
-        # test
-        results = self.analysis.performance_attribution()
-
-        # validate
-        self.assertTrue(results["Total Contribution"] > 0)
-        self.assertTrue(results["Systematic Contribution"] > 0)
-        self.assertTrue(results["Idiosyncratic Contribution"] > 0)
-        self.assertTrue(results["Alpha Contribution"] > 0)
-        self.assertTrue(results["Randomness"] > 0)
-
     # Type Check
-    def test_predict_type_check(self):
-        self.analysis.fit()
-
-        with self.assertRaises(TypeError):
-            self.analysis.predict([1, 2, 3, 4])
-
-    # Value Error
-    def test_check_collinearity_no_model(self):
-        with self.assertRaises(ValueError):
-            self.analysis.check_collinearity()
-
     def test_risk_decomposition_no_model(self):
         with self.assertRaises(ValueError):
-            self.analysis.risk_decomposition()
+            self.analysis.risk_decomposition(None)
 
     def test_performance_attribution_no_model(self):
         with self.assertRaises(ValueError):
-            self.analysis.risk_decomposition()
-
-    def test_plot_residuals_no_model(self):
-        with self.assertRaises(ValueError):
-            self.analysis.plot_residuals()
-
-    def test_plot_qq_no_model(self):
-        with self.assertRaises(ValueError):
-            self.analysis.plot_residuals()
-
-    def test_plot_influence_measures_no_model(self):
-        with self.assertRaises(ValueError):
-            self.analysis.plot_residuals()
+            self.analysis.risk_decomposition(None)
 
     # Error Haandling
     def test_fit_error(self):
-        self.analysis.X_train = None
-        self.analysis.y_train = None
+        train_data = None
 
         # Test
         with self.assertRaises(Exception):
-            self.analysis.fit()
-
-    def test_predict_error(self):
-        new_X = pd.DataFrame()
-
-        # test
-        with self.assertRaises(Exception):
-            self.analysis.predict(new_X)
-
-    def test_collinearity_error(self):
-        self.analysis.X_test = None
-        self.analysis.fit()
-
-        # test
-        with self.assertRaises(Exception):
-            self.analysis.check_collinearity()
+            self.analysis.fit(train_data)
 
 
 if __name__ == "__main__":

@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-import matplotlib.pyplot as plt
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-from statsmodels.regression.linear_model import RegressionResultsWrapper
+from sklearn.metrics import mean_absolute_error
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-
-from quantAnalytics.statistics import TimeseriesTests, Result
+from quantAnalytics.statistics import Result
+from quantAnalytics.report import ReportBuilder, Header
+from quantAnalytics.visualization import Visualization
+from sklearn.model_selection import KFold
+from sklearn.metrics import root_mean_squared_error
 
 
 class RegressionResult(Result):
@@ -30,84 +31,138 @@ class RegressionResult(Result):
 
 class RegressionAnalysis:
     def __init__(
-        self, y: pd.Series, X: pd.DataFrame, risk_free_rate: float = 0.01
+        self,
+        data: pd.DataFrame,
+        dependent_var: str,
+        risk_free_rate: float = 0.01,
+        file_name: str = "regression.html",
+        output_directory: str = "report",
+        css_path: str = "",
     ):
         """
         Initialize the RegressionAnalysis with strategy and benchmark returns.
 
         Parameters:
-        - y (pd.DataFrame): DataFrame containing strategy equity values with a 'timestamp' and 'equity_value' columns.
-        - X (pd.DataFrame): DataFrame containing benchmark equity values with a 'timestamp' and 'close' columns.
+        - data (pd.DataFrame): DataFrame containing both independent and dependent variables.
+        - dependent_var (str): Name of the column representing the dependent variable (Y).
         - risk_free_rate (float, optional): The risk-free rate used in calculations, default is 0.01.
+        - file_name (str, optional): Name of the output file for the regression report.
+        - output_directory (str, optional): Directory to save the regression report.
+        - css_path (str, optional): Path to a custom CSS file for styling the report.
         """
-        # Ensure the inputs are DataFrames
-        if not isinstance(X, (pd.DataFrame, pd.Series)):
-            raise TypeError("X must be a pandas DataFrame")
-        if not isinstance(y, (pd.Series, pd.DataFrame)):
-            raise TypeError("y must be a pandas Series or DataFrame")
-        if isinstance(y, pd.DataFrame):
-            y = y.squeeze()
 
-        if len(y) != len(X):
+        # Ensure the inputs are valid
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("Data must be a pandas DataFrame")
+
+        if dependent_var not in data.columns:
             raise ValueError(
-                "Independent(X) and dependent(y) variables must be the same length."
+                f"Dependent variable '{dependent_var}' not found in the data"
             )
 
-        self.X = X
-        self.y = y
-        self.X_train, self.X_test = TimeseriesTests.split_data(
-            X, train_ratio=0.7
-        )
-        self.y_train, self.y_test = TimeseriesTests.split_data(
-            y, train_ratio=0.7
-        )
+        # Store variables for later use
+        self.output_dir = output_directory
+        self.data = data
+        self.dependent_var = dependent_var
+        self.independent_vars = [
+            col for col in data.columns if col != dependent_var
+        ]
+        self.risk_free_rate = risk_free_rate
+
+        # Set up report builder (assuming you have a ReportBuilder class)
+        self.report = ReportBuilder(file_name, output_directory, css_path)
         self.model: sm.OLS = None
 
-    # Regression Model
-    def fit(self) -> RegressionResultsWrapper:
+    def run(self, cv_splits=5, report_file="regression_report.html"):
         """
-        Perform a linear regression between a single dependent and independent variable(s).
-        It returns the summary of the regression analysis.
+        Perform cross-validation, fit models, evaluate them, and generate a report.
 
-        Returns:
-        - statsmodels.regression.linear_model.RegressionResultsWrapper: The fitted regression model summary.
+        Parameters:
+        - cv_splits (int): Number of splits for cross-validation.
+        - report_file (str): Path to save the final report.
         """
-        try:
-            self.X_train = sm.add_constant(
-                self.X_train
-            )  # Add the intercept term
-            self.model = sm.OLS(self.y_train, self.X_train).fit()
-            return self.model.summary()
-        except Exception as e:
-            raise Exception(f"Error fitting OLS model : {e}")
+        self.report.add_header("Regression Analysis", Header.H3)
 
-    def predict(self, X_new: pd.DataFrame) -> pd.Series:
-        if not isinstance(X_new, (pd.DataFrame, pd.Series)):
-            raise TypeError("X must be a pandas DataFrame")
+        kf = KFold(n_splits=cv_splits)
+        for fold, (train_idx, test_idx) in enumerate(kf.split(self.data), 1):
+            print(f"Running fold {fold}/{cv_splits}...")
 
-        try:
-            X_new = sm.add_constant(X_new)
-            X_new_pred = self.model.predict(X_new)
-            return X_new_pred
-        except Exception as e:
-            raise Exception(f"Error occured while making predictions : {e}")
+            # Split the data into training and test sets
+            train_data = self.data.iloc[train_idx]
+            test_data = self.data.iloc[test_idx]
+
+            # Train the model on the training set
+            summary = self.fit(train_data)
+
+            # Evaluate the model on the test set
+            eval_report = self.evaluate(test_data)
+
+            # Perform risk decomposition and performance attribution
+            risk_report = self.risk_decomposition(test_data)
+            performance_report = self.performance_attribution(test_data)
+
+            # Plot data
+            residuals = (
+                train_data[self.dependent_var] - self.model.fittedvalues
+            )
+
+            influence = self.model.get_influence()
+            cooks_dist = influence.cooks_distance[0]
+
+            # Plots
+            fitted_plot_path = (
+                f"{self.output_dir}/residuals_v_fitted_{fold}.png"
+            )
+            Visualization.plot_residuals_vs_fitted(
+                residuals=residuals,
+                fittedvalues=self.model.fittedvalues,
+                save_path=fitted_plot_path,
+            )
+            qq_plot = f"{self.output_dir}/qq_plot_{fold}.png"
+            Visualization.qq_plot(residuals, save_path=qq_plot)
+
+            influence_plot = f"{self.output_dir}/influence_plot_{fold}.png"
+            Visualization.plot_influence_measures(
+                cooks_dist, save_path=influence_plot
+            )
+
+            # Combine all reports
+            self.report.add_header(f"Fold: {fold}", Header.H3)
+            self.report.add_html_block(summary)
+            self.report.add_html_block(eval_report.to_html())
+            self.report.add_header("Risk & Performance", Header.H4)
+            self.report.add_unorderedlist_dict(risk_report)
+            self.report.add_unorderedlist_dict(performance_report)
+            self.report.add_image(fitted_plot_path)
+            self.report.add_image(qq_plot)
+            self.report.add_image(influence_plot)
+
+        self.report.build()
+
+    def fit(self, train_data: pd.DataFrame) -> str:
+        """
+        Run the regression analysis with the dependent variable against all independent variables.
+        """
+        X = sm.add_constant(train_data[self.independent_vars])
+        y = train_data[self.dependent_var]
+
+        # Fit the OLS model
+        model = sm.OLS(y, X).fit()
+
+        # Save the model result
+        self.model = model
+        return model.summary().as_html()
 
     def evaluate(
-        self, r_squared_threshold: float = 0.3, p_value_threshold: float = 0.05
+        self,
+        test_data: pd.DataFrame,
+        r_squared_threshold: float = 0.3,
+        p_value_threshold: float = 0.05,
     ) -> Result:
         """
         Evaluate the model on the test data and validate it based on R-squared and p-values significance.
-
         This method uses the fitted regression model to predict the dependent variable values for the test set and
         calculates performance metrics. It also validates the model based on R-squared and p-values thresholds.
-
-        Parameters:
-        - r_squared_threshold (float, optional): The threshold for R-squared value. Default is 0.02.
-        - p_value_threshold (float, optional): The threshold for p-values. Default is 0.05.
-
-        Returns:
-        - dict: A dictionary containing the R-squared, RMSE, MAE of the model on the test set,
-                and validation checks for R-squared and p-values.
         """
         if not self.model:
             raise ValueError(
@@ -115,19 +170,66 @@ class RegressionAnalysis:
             )
 
         # Predictions on test set
-        X_test_with_const = sm.add_constant(self.X_test)
-        y_pred_test = self.model.predict(X_test_with_const)
-        residuals = self.y_test - y_pred_test
+        X_test, y_predict, y_actual, residuals = self.get_predictions(
+            test_data
+        )
 
-        # Calculate performance metrics
+        # Model performance metrics
+        model_performance = self.get_model_performance(
+            r_squared_threshold, p_value_threshold, y_predict, y_actual
+        )
+
+        # Diagnostic checks
+        diagnostic_check = self.get_diagnostic_checks(
+            residuals, X_test, p_value_threshold
+        )
+
+        # Coefficients (Alpha, Beta, and significance)
+        coefficients = self.get_coefficients(p_value_threshold)
+
+        # Final validation of the model
+        model_validity = self.validate_model(
+            p_value_threshold,
+            model_performance["R-squared"]["value"],
+            diagnostic_check,
+        )
+
+        # Build the evaluation report
+        report = {
+            "Model Performance": model_performance,
+            "Diagnostic Checks": diagnostic_check,
+            "Coefficients": coefficients,
+            "Model Validity": {
+                "Model Validity": {
+                    "value": model_validity,
+                    "significant": model_validity,
+                }
+            },
+        }
+
+        return RegressionResult(report)
+
+    def get_predictions(self, test_data: pd.DataFrame):
+        """Get predictions from the test set and calculate residuals."""
+        X = sm.add_constant(test_data[self.independent_vars])
+        y_actual = test_data[self.dependent_var]
+
+        y_predict = self.model.predict(X)
+        residuals = y_actual - y_predict
+        return X, y_predict, y_actual, residuals
+
+    def get_model_performance(
+        self, r_squared_threshold, p_value_threshold, y_predict, y_actual
+    ):
+        """Calculate the R-squared, RMSE, MAE, and other performance metrics."""
         r_squared = self.model.rsquared
         adj_r_squared = self.model.rsquared_adj
-        rmse = mean_squared_error(self.y_test, y_pred_test, squared=False)
-        mae = mean_absolute_error(self.y_test, y_pred_test)
+        rmse = root_mean_squared_error(y_actual, y_predict)
+        mae = mean_absolute_error(y_actual, y_predict)
         f_statistic = self.model.fvalue
         f_pvalue = self.model.f_pvalue
 
-        model_performance = {
+        return {
             "R-squared": {
                 "value": r_squared,
                 "significant": r_squared > r_squared_threshold,
@@ -139,11 +241,8 @@ class RegressionAnalysis:
             "RMSE": {
                 "value": rmse,
                 "significant": True,
-            },  # No threshold for RMSE, always include value
-            "MAE": {
-                "value": mae,
-                "significant": True,
-            },  # No threshold for MAE, always include value
+            },  # Always include RMSE
+            "MAE": {"value": mae, "significant": True},  # Always include MAE
             "F-statistic": {
                 "value": f_statistic,
                 "significant": f_pvalue < p_value_threshold,
@@ -154,11 +253,36 @@ class RegressionAnalysis:
             },
         }
 
-        # Diagnostic checks
+    def check_collinearity(self, X_test: pd.DataFrame):
+        """
+        Calculate the Variance Inflation Factor (VIF) for each predictor variable in the regression model.
+
+        This method helps to identify collinearity among predictor variables. High VIF values suggest that the model variables
+        are highly correlated with each other, potentially distorting regression coefficients and p-values.
+
+        Returns:
+        - pd.DataFrame: A DataFrame with predictor variables and their corresponding VIF values.
+        """
+        if not self.model:
+            raise ValueError(
+                "Model not fitted yet. Please fit the model before checking for collinearity."
+            )
+        try:
+            # Calculating VIF for each feature
+            vif_data = {
+                X_test.columns[i]: variance_inflation_factor(X_test.values, i)
+                for i in range(X_test.shape[1])
+            }
+            return vif_data
+        except Exception as e:
+            raise Exception(f"Error calculating collinearity : {e}")
+
+    def get_diagnostic_checks(self, residuals, X_test, p_value_threshold):
+        """Run diagnostic checks such as Durbin-Watson, Jarque-Bera, and VIF."""
         dw_stat = sm.stats.durbin_watson(residuals)
         jb_stat, jb_pvalue, _, _ = sm.stats.jarque_bera(residuals)
-        condition_number = np.linalg.cond(X_test_with_const)
-        vif = self.check_collinearity()
+        condition_number = np.linalg.cond(X_test)
+        vif = self.check_collinearity(X_test)
 
         diagnostic_check = {
             "Durbin-Watson": {
@@ -185,7 +309,10 @@ class RegressionAnalysis:
                 "significant": value < 10,
             }
 
-        # Coefficients
+        return diagnostic_check
+
+    def get_coefficients(self, p_value_threshold):
+        """Extract and evaluate the coefficients (Alpha, Beta, and p-values)."""
         coefficients = self.model.params
         p_values = self.model.pvalues
         alpha = coefficients["const"]
@@ -193,7 +320,7 @@ class RegressionAnalysis:
         beta = coefficients.drop("const").to_dict()
         beta_p_value = p_values.drop("const").to_dict()
 
-        coefficients = {
+        coef = {
             "Alpha": {
                 "value": alpha,
                 "significant": alpha_p_value < p_value_threshold,
@@ -203,168 +330,34 @@ class RegressionAnalysis:
                 "significant": alpha_p_value < p_value_threshold,
             },
         }
+
         for key, value in beta.items():
-            coefficients[f"Beta ({key})"] = {
+            coef[f"Beta ({key})"] = {
                 "value": value,
                 "significant": beta_p_value[key] < p_value_threshold,
             }
-            coefficients[f"Beta ({key}) p-value"] = {
+            coef[f"Beta ({key}) p-value"] = {
                 "value": beta_p_value[key],
                 "significant": beta_p_value[key] < p_value_threshold,
             }
 
-        # Validation
-        model_validity = (
-            p_values["const"] < p_value_threshold
-            and all(p_values.drop("const") < p_value_threshold)
-            and f_pvalue < p_value_threshold
-            and r_squared > r_squared_threshold
-            and 1.5 < dw_stat < 2.5
-            and jb_pvalue > p_value_threshold
-            and condition_number < 30
+        return coef
+
+    def validate_model(self, p_value_threshold, r_squared, diagnostic_check):
+        """Validate the model based on significance of coefficients, p-values, and diagnostic checks."""
+        return (
+            self.model.pvalues["const"] < p_value_threshold
+            and all(self.model.pvalues.drop("const") < p_value_threshold)
+            and self.model.f_pvalue < p_value_threshold
+            and r_squared
+            > 0.3  # You can use r_squared_threshold here if necessary
+            and diagnostic_check["Durbin-Watson"]["significant"]
+            and diagnostic_check["Jarque-Bera"]["significant"]
+            and diagnostic_check["Condition Number"]["significant"]
         )
-
-        # Validation summary
-        report = {
-            "Model Performance": model_performance,
-            "Diagnostic Checks": diagnostic_check,
-            "Coefficients": coefficients,
-            "Model Validity": {
-                "Model Validity": {
-                    "value": model_validity,
-                    "significant": model_validity,
-                }
-            },
-        }
-
-        return RegressionResult(report)
-
-    # Checks
-    def check_collinearity(self):
-        """
-        Calculate the Variance Inflation Factor (VIF) for each predictor variable in the regression model.
-
-        This method helps to identify collinearity among predictor variables. High VIF values suggest that the model variables
-        are highly correlated with each other, potentially distorting regression coefficients and p-values.
-
-        Returns:
-        - pd.DataFrame: A DataFrame with predictor variables and their corresponding VIF values.
-        """
-        if not self.model:
-            raise ValueError(
-                "Model not fitted yet. Please fit the model before checking for collinearity."
-            )
-        try:
-            X_with_const = sm.add_constant(
-                self.X_test
-            )  # Adding a constant for the intercept
-            # Calculating VIF for each feature
-            vif_data = {
-                X_with_const.columns[i]: variance_inflation_factor(
-                    X_with_const.values, i
-                )
-                for i in range(X_with_const.shape[1])
-            }
-            return vif_data
-        except Exception as e:
-            raise Exception(f"Error calculating collinearity : {e}")
-
-    # Plots
-    def plot_residuals(self):
-        """
-        Plot residuals against fitted values to diagnose the regression model.
-
-        This method generates a scatter plot of residuals versus fitted values and includes a horizontal line at zero.
-        It is used to check for non-random patterns in residuals which could indicate problems with the model such as
-        non-linearity, outliers, or heteroscedasticity.
-        """
-        if not self.model:
-            raise ValueError(
-                "Model not fitted yet. Please fit the model before plotting residuals."
-            )
-
-        # Calculate residuals
-        residuals = self.y_train - self.model.fittedvalues
-
-        # Create the plot
-        fig, ax = plt.subplots(figsize=(10, 6))
-
-        ax.scatter(
-            self.model.fittedvalues,
-            residuals,
-            alpha=0.5,
-            color="blue",
-            edgecolor="k",
-        )
-        ax.axhline(0, color="red", linestyle="--")
-        ax.set_xlabel("Fitted values")
-        ax.set_ylabel("Residuals")
-        ax.set_title("Residuals vs Fitted Values")
-        ax.grid(True)
-
-        # Adjust layout to minimize white space
-        plt.tight_layout()
-
-        # Return the figure object
-        return fig
-
-    def plot_qq(self):
-        """
-        Generate a Q-Q plot to analyze the normality of residuals in the regression model.
-
-        This method creates a Q-Q plot comparing the quantiles of the residuals to the quantiles of a normal distribution.
-        This helps in diagnosing deviations from normality such as skewness and kurtosis.
-        """
-        if not self.model:
-            raise ValueError(
-                "Model not fitted yet. Please fit the model before plotting Q-Q plot."
-            )
-
-        # Calculate residuals
-        residuals = self.y_train - self.model.fittedvalues
-
-        # Generate Q-Q plot
-        fig = plt.figure(figsize=(10, 6))
-        ax = fig.add_subplot(111)
-        sm.qqplot(residuals, line="45", ax=ax, fit=True)
-        ax.set_title("Q-Q Plot of Residuals")
-        ax.grid(True)
-
-        # Adjust layout to minimize white space
-        plt.tight_layout()
-
-        # Return the figure object
-        return fig
-
-    def plot_influence_measures(self):
-        """
-        Plot influence measures such as Cook's distance to identify influential cases in the regression model.
-
-        This method plots the Cook's distance for each observation to help identify influential points that might
-        affect the robustness of the regression model.
-        """
-        if not self.model:
-            raise ValueError(
-                "Model not fitted yet. Please fit the model before assessing influence."
-            )
-
-        influence = self.model.get_influence()
-        cooks_d = influence.cooks_distance[0]
-
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.stem(np.arange(len(cooks_d)), cooks_d, markerfmt=",")
-        ax.set_title("Cook's Distance Plot")
-        ax.set_xlabel("Observation Index")
-        ax.set_ylabel("Cook's Distance")
-
-        # Adjust layout to minimize white space
-        plt.tight_layout()
-
-        # Return the figure object
-        return fig
 
     # Measure Risk
-    def risk_decomposition(self, data="all") -> dict:
+    def risk_decomposition(self, data: pd.DataFrame) -> dict:
         """
         Decompose risk into idiosyncratic, market, and total based on regression analysis.
 
@@ -378,23 +371,10 @@ class RegressionAnalysis:
         - dict: A dictionary containing market volatility, idiosyncratic volatility, and total volatility.
         """
         if self.model is None:
-            raise ValueError(
-                "Model not fitted yet. Please fit the model before performing risk decomposition."
-            )
+            raise ValueError("Model not fitted yet. Fit the model first.")
 
-        if data == "train":
-            y = self.y_train
-            X = self.X_train
-        elif data == "test":
-            y = self.y_test
-            X = self.X_test
-        elif data == "all":
-            y = self.y
-            X = self.X
-        else:
-            raise ValueError(
-                "Invalid data option. Choose from 'train', 'test', or 'all'."
-            )
+        X = sm.add_constant(data[self.independent_vars])
+        y = data[self.dependent_var]
 
         # Calculate total variance of the dependent variable (y)
         total_variance = y.var()
@@ -418,7 +398,7 @@ class RegressionAnalysis:
             "Idiosyncratic Volatility": np.sqrt(idiosyncratic_variance),
         }
 
-    def performance_attribution(self) -> dict:
+    def performance_attribution(self, data: pd.DataFrame) -> dict:
         """
         Attribute performance into idiosyncratic, market, and total.
 
@@ -429,25 +409,26 @@ class RegressionAnalysis:
         - dict: A dictionary containing market contribution, idiosyncratic contribution, and total contribution.
         """
         if self.model is None:
-            raise ValueError(
-                "Model not fitted yet. Please fit the model before performing performance decomposition."
-            )
+            raise ValueError("Model not fitted yet. Fit the model first.")
+
+        X = sm.add_constant(data[self.independent_vars])
+        y = data[self.dependent_var]
 
         # Calculate total return of the dependent variable (y)
-        total_return = self.y.mean()
+        total_return = y.mean()
 
         # Calculate alpha (intercept)
         alpha = self.model.params["const"]
 
         # Calculate systematic return based on the number of predictors
-        if len(self.X.columns) > 1:  # Multi-factor model
+        if len(X.columns) > 1:  # Multi-factor model
             systematic_return = sum(
-                self.model.params.iloc[i + 1] * self.X.iloc[:, i].mean()
-                for i in range(len(self.X.columns))
+                self.model.params.iloc[i] * X.iloc[:, i].mean()
+                for i in range(len(X.columns))
             )
         else:  # Single-factor model
             beta = self.model.params.iloc[1]
-            systematic_return = beta * self.X.iloc[:, 0].mean()
+            systematic_return = beta * X.iloc[:, 0].mean()
 
         # Calculate idiosyncratic return as total return minus systematic return
         idiosyncratic_return = total_return - systematic_return
