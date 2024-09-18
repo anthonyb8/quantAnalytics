@@ -226,9 +226,9 @@ class ComponentBuilder:
 
 
 class DivBuilder(ComponentBuilder):
-    def __init__(self):
+    def __init__(self, css_class: str = ""):
         super().__init__()
-        self.div_class = ""
+        self.div_class = css_class
 
     def set_class(self, div_class: str) -> "DivBuilder":
         """Set the CSS class for the div."""
