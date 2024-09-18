@@ -4,8 +4,8 @@ from matplotlib.figure import Figure
 from typing import Dict, Optional
 import numpy as np
 import seaborn as sns
-import scipy.stats as stats
 from scipy.stats import norm
+import statsmodels.api as sm
 
 
 class Visualization:
@@ -737,35 +737,107 @@ class Visualization:
 
     @staticmethod
     def qq_plot(
-        data: pd.Series, title: str = "Q-Q Plot", save_path: str = None
+        residuals: pd.Series, title: str = "Q-Q Plot", save_path: str = None
     ) -> plt.Figure:
         """
-        Create a Q-Q plot for the given data comparing it against a normal distribution.
+        Generate a Q-Q plot to analyze the normality of residuals in the regression model.
 
-        Parameters:
-        - data (array-like): The dataset for which the Q-Q plot is to be created.
-        - title (str): Title of the plot.
-
-        Returns:
-        - plt.Figure: A Q-Q plot.
-
-        Example:
-        >>> TimeseriesTests.qq_plot(data, title='Test Q-Q Plot')
-        >>> plt.show()
+        This method creates a Q-Q plot comparing the quantiles of the residuals to the quantiles of a normal distribution.
+        This helps in diagnosing deviations from normality such as skewness and kurtosis.
         """
-        # Convert data to a numpy array if it's not already
-        data = np.asarray(data)
-
-        # Create figure and axis
-        fig, ax = plt.subplots(figsize=(6, 6))
 
         # Generate Q-Q plot
-        stats.probplot(data, dist="norm", plot=ax)
-
-        # Add title and labels
+        fig = plt.figure(figsize=(10, 6))
+        ax = fig.add_subplot(111)
+        sm.qqplot(residuals, line="45", ax=ax, fit=True)
         ax.set_title(title)
-        ax.set_xlabel("Theoretical Quantiles")
-        ax.set_ylabel("Sample Quantiles")
+        ax.grid(True)
+
+        # Adjust layout to minimize white space
+        plt.tight_layout()
+
+        if save_path:
+            fig.savefig(save_path)
+            plt.close(fig)  # Close the figure to avoid display
+        else:
+            return fig
+
+    @staticmethod
+    def plot_residuals_vs_fitted(
+        residuals: pd.Series,
+        fittedvalues: pd.Series,
+        title: str = "Residuals vs Fitted Values",
+        save_path: str = None,
+    ) -> plt.Figure:
+        """
+        Plot residuals against fitted values to diagnose the regression model.
+
+        This method generates a scatter plot of residuals versus fitted values and includes a horizontal line at zero.
+        It is used to check for non-random patterns in residuals which could indicate problems with the model such as
+        non-linearity, outliers, or heteroscedasticity.
+
+        Parameters:
+        - residuals (pd.Series): The residuals from the regression model.
+        - fittedvalues (pd.Series): The fitted values from the regression model.
+        - title (str): The title of the plot (optional).
+
+        Returns:
+        - plt.Figure: The matplotlib figure object for further customization or saving.
+        """
+
+        # Create the plot
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Scatter plot of residuals vs fitted values
+        ax.scatter(
+            fittedvalues,
+            residuals,
+            alpha=0.5,
+            color="blue",
+            edgecolor="k",
+        )
+
+        # Add a horizontal line at 0
+        ax.axhline(0, color="red", linestyle="--")
+
+        # Add labels and title
+        ax.set_xlabel("Fitted values")
+        ax.set_ylabel("Residuals")
+        ax.set_title(title)
+
+        # Add grid for better readability
+        ax.grid(True)
+
+        # Adjust layout to avoid unnecessary whitespace
+        plt.tight_layout()
+
+        if save_path:
+            fig.savefig(save_path)
+            plt.close(fig)  # Close the figure to avoid display
+        else:
+            return fig
+
+    @staticmethod
+    def plot_influence_measures(
+        cooks_d,
+        title: str = "Cook's Distance Plot",
+        save_path: str = None,
+    ) -> plt.Figure:
+        """
+        Plot influence measures such as Cook's distance to identify influential cases in the regression model.
+
+        This method plots the Cook's distance for each observation to help identify influential points that might
+        affect the robustness of the regression model.
+        """
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.stem(np.arange(len(cooks_d)), cooks_d, markerfmt=",")
+        ax.set_title("Cook's Distance Plot")
+        ax.set_xlabel("Observation Index")
+        ax.set_ylabel("Cook's Distance")
+
+        # Adjust layout to minimize white space
+        plt.tight_layout()
 
         if save_path:
             fig.savefig(save_path)

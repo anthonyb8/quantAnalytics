@@ -275,6 +275,29 @@ class TestVisualization(unittest.TestCase):
         self.assertIsInstance(fig, plt.Figure)
         self.assertTrue(len(fig.axes[0].lines) > 0)
 
+    def test_residuals_v_fitted(self):
+        # Create sample data
+        residuals = np.random.normal(loc=0, scale=1, size=1000)
+        fittedvalues = np.random.normal(loc=0, scale=1, size=1000)
+
+        # test
+        fig = Visualization.plot_residuals_vs_fitted(residuals, fittedvalues)
+
+        # validate
+        self.assertIsInstance(fig, plt.Figure)
+        self.assertTrue(len(fig.axes[0].lines) > 0)
+
+    def test_plot_influence_measures(self):
+        # Create sample data
+        data = np.random.normal(loc=0, scale=1, size=1000)
+
+        # test
+        fig = Visualization.plot_influence_measures(data)
+
+        # validate
+        self.assertIsInstance(fig, plt.Figure)
+        self.assertTrue(len(fig.axes[0].lines) > 0)
+
     def tearDown(self):
         plt.close("all")
 
