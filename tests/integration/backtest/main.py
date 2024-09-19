@@ -6,7 +6,7 @@ from mbn import BufferStore
 
 def main():
     # Load data
-    buffer_obj = BufferStore.from_file("tests/test_data.bin")
+    buffer_obj = BufferStore.from_file("tests/integration/test_data.bin")
     metadata = buffer_obj.metadata
     print(metadata)
     df = buffer_obj.decode_to_df(pretty_ts=False, pretty_px=True)

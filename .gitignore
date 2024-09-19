@@ -4,6 +4,7 @@ build/
 *.pdf
 *.html
 outputs/
+backtest_unit_output/
 
 # General
 *.log

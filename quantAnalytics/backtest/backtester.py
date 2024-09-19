@@ -125,6 +125,9 @@ class VectorizedBacktest(PerformanceStatistics):
         # Dump dataframes to excel
         self.dump_to_excel()
 
+        # Dump to parquet for easy use in Future
+        self.dump_to_parquet()
+
         print("Summary and report generation completed.")
 
     def _calculate_positions(self, lag: int) -> None:
@@ -290,6 +293,20 @@ class VectorizedBacktest(PerformanceStatistics):
 
             # Write summary stats to excel thir sheet
             self.stats_df.to_excel(writer, sheet_name="Summary Stats")
+
+    def dump_to_parquet(self) -> None:
+        """
+        Dumps the raw data and daily data to Parquet for regression analysis.
+        """
+        # Store daily data in Parquet
+        self.daily_data.to_parquet(f"{self.output_dir}/daily_data.parquet")
+
+        # Store raw data in Parquet
+        self.data.to_parquet(f"{self.output_dir}/raw_data.parquet")
+
+        print(
+            f"Data successfully written to {self.output_dir} in Parquet format."
+        )
 
     def build_report(self):
 
