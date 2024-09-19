@@ -149,10 +149,7 @@ class PPResult(Result):
 class JohansenResult(Result):
     def __init__(self, data: dict, num_cointegrations: int, k_ar_diff: int):
         super().__init__("Johansen Test", "", data)
-        self.title = f"Johansen Cointegration Test : (Ideal lag = {k_ar_diff})"
-        self.header = (
-            f"Number of cointerated realtionships : {num_cointegrations}"
-        )
+        self.header = f"Johansen Cointegration Test : (Ideal lag = {k_ar_diff})\n Number of cointerated realtionships : {num_cointegrations}"
         self.footer = "** IF Trace Statistic > Critical Value AND Max Eigenvalue > Critical Value then Reject Null of at most r cointegrating relationships.(r=0 in first test)"
         self.num_cointegrations = num_cointegrations
 
