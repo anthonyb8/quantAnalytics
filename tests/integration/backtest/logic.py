@@ -86,7 +86,7 @@ class Cointegrationzscore(BaseStrategy):
         return historical_zscore
 
     # -- Strategy logic --
-    def _entry_signal(self, z_score: float, entry_threshold: float) -> bool:
+    def _entry_signal(self, z_score: float) -> bool:
         """
         Entry logic.
 
@@ -97,18 +97,22 @@ class Cointegrationzscore(BaseStrategy):
         Returns:
         - bool : True if an entry signal else False.
         """
-        if self.last_signal == Signal.NoSignal and z_score >= entry_threshold:
+        if (
+            self.last_signal == Signal.NoSignal
+            and z_score >= self.entry_threshold
+        ):
             self.last_signal = Signal.Overvalued
             return True
         elif (
-            self.last_signal == Signal.NoSignal and z_score <= -entry_threshold
+            self.last_signal == Signal.NoSignal
+            and z_score <= -self.entry_threshold
         ):
             self.last_signal = Signal.Undervalued
             return True
         else:
             return False
 
-    def _exit_signal(self, z_score: float, exit_threshold: float) -> bool:
+    def _exit_signal(self, z_score: float) -> bool:
         """
         Exit logic.
 
@@ -121,12 +125,13 @@ class Cointegrationzscore(BaseStrategy):
         """
         if (
             self.last_signal == Signal.Undervalued
-            and z_score >= -exit_threshold
+            and z_score >= -self.exit_threshold
         ):
             self.last_signal = Signal.Exit_Undervalued
             return True
         elif (
-            self.last_signal == Signal.Overvalued and z_score <= exit_threshold
+            self.last_signal == Signal.Overvalued
+            and z_score <= self.exit_threshold
         ):
             self.last_signal = Signal.Exit_Overvalued
             return True
@@ -156,31 +161,45 @@ class Cointegrationzscore(BaseStrategy):
                 continue
 
             # Check for entry signals
-            if self._entry_signal(current_zscore, self.entry_threshold):
-                for ticker, weights in self.weights.items():
-                    if self.last_signal == Signal.Undervalued and weights > 0:
-                        self.data.at[
-                            self.data.index[i], f"{ticker}_signal"
-                        ] = 1
-                    elif (
-                        self.last_signal == Signal.Undervalued and weights < 0
-                    ):
-                        self.data.at[
-                            self.data.index[i], f"{ticker}_signal"
-                        ] = -1
-                    elif self.last_signal == Signal.Overvalued and weights > 0:
-                        self.data.at[
-                            self.data.index[i], f"{ticker}_signal"
-                        ] = -1
-                    elif self.last_signal == Signal.Overvalued and weights < 0:
-                        self.data.at[
-                            self.data.index[i], f"{ticker}_signal"
-                        ] = 1
+            if self.last_signal == Signal.NoSignal:
+                if self._entry_signal(current_zscore):
+                    for ticker, weights in self.weights.items():
+                        if (
+                            self.last_signal == Signal.Undervalued
+                            and weights > 0
+                        ):
+                            self.data.at[
+                                self.data.index[i], f"{ticker}_signal"
+                            ] = 1
+                        elif (
+                            self.last_signal == Signal.Undervalued
+                            and weights < 0
+                        ):
+                            self.data.at[
+                                self.data.index[i], f"{ticker}_signal"
+                            ] = -1
+                        elif (
+                            self.last_signal == Signal.Overvalued
+                            and weights > 0
+                        ):
+                            self.data.at[
+                                self.data.index[i], f"{ticker}_signal"
+                            ] = -1
+                        elif (
+                            self.last_signal == Signal.Overvalued
+                            and weights < 0
+                        ):
+                            self.data.at[
+                                self.data.index[i], f"{ticker}_signal"
+                            ] = 1
 
             # Check for exit signals
-            elif self._exit_signal(current_zscore, self.exit_threshold):
-                for ticker in self.weights.keys():
-                    self.data.loc[self.data.index[i], f"{ticker}_signal"] = 0
-                self.last_signal = Signal.NoSignal  # reset to no position
+            else:
+                if self._exit_signal(current_zscore):
+                    for ticker in self.weights.keys():
+                        self.data.loc[
+                            self.data.index[i], f"{ticker}_signal"
+                        ] = 0
+                    self.last_signal = Signal.NoSignal  # reset to no position
 
         # return self.data

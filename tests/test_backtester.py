@@ -9,7 +9,7 @@ class TestVectorizedBacktest(unittest.TestCase):
     def setUp(self):
         self.test_data = pd.DataFrame(
             {
-                "timestamp": [
+                "ts_event": [
                     1700593200000000000,
                     1700852400000000000,
                     1700938800000000000,
@@ -60,7 +60,7 @@ class TestVectorizedBacktest(unittest.TestCase):
         self.mock_strategy.weights = {"A": 1, "B": -1}
         self.backtest.data = pd.DataFrame(
             {
-                "timestamp": [
+                "ts_event": [
                     1700593200000000000,
                     1700852400000000000,
                     1700938800000000000,
@@ -79,7 +79,7 @@ class TestVectorizedBacktest(unittest.TestCase):
 
         expected_df = pd.DataFrame(
             {
-                "timestamp": [
+                "ts_event": [
                     1700593200000000000,
                     1700852400000000000,
                     1700938800000000000,
@@ -113,7 +113,7 @@ class TestVectorizedBacktest(unittest.TestCase):
     def test_summary(self):
         self.backtest.data = pd.DataFrame(
             {
-                "timestamp": [
+                "ts_event": [
                     1700593200000000000,
                     1700852400000000000,
                     1700938800000000000,
@@ -141,7 +141,7 @@ class TestVectorizedBacktest(unittest.TestCase):
         # Expected
         expected_df = pd.DataFrame(
             {
-                "timestamp": [
+                "ts_event": [
                     1700593200000000000,
                     1700852400000000000,
                     1700938800000000000,
