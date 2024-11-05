@@ -20,13 +20,15 @@ def iso_to_unix(timestamp_str: str):
     try:
         # Try to parse the timestamp with timezone information
         dt = datetime.fromisoformat(timestamp_str)
-    except ValueError:
-        # If no timezone is specified, assume UTC
-        dt = datetime.fromisoformat(timestamp_str + "Z").replace(
-            tzinfo=timezone.utc
-        )
 
-    # Convert to Unix timestamp (seconds since the epoch, with nanoseconds)
+        # If the datetime is naive (no timezone), assume UTC
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+    except ValueError:
+        # If parsing fails, raise an error
+        raise ValueError("Invalid ISO 8601 datetime format")
+
+    # Convert to Unix timestamp in nanoseconds
     unix_timestamp = int(dt.timestamp() * 1e9)
     return unix_timestamp
 
@@ -106,20 +108,20 @@ def resample_daily(df: pd.DataFrame, tz_info="UTC"):
     if tz_info != "UTC":
         utc = False
 
-    # Convert index to readable datetime
+        # Convert index to readable datetime
     df.index = pd.to_datetime(
         df.index.map(lambda x: unix_to_iso(x, tz_info)), utc=utc
     )
 
     # Store original UNIX timestamps before resampling
-    original_timestamps = df.index.to_series().resample("D").last()
-    original_timestamps.dropna(inplace=True)
+    original_timestamps = df.index.to_series().resample("D").last().dropna()
 
     # Resample to daily frequency, using the last value of each day
-    daily_df = df.resample("D").last()
+    daily_df = df.resample("D").last().dropna()
 
-    # Optionally, fill NaN values if necessary, depending on your specific needs
-    daily_df.dropna(inplace=True)
+    # Align indexes if they don't match in length
+    if len(original_timestamps) != len(daily_df):
+        original_timestamps = original_timestamps[daily_df.index]
 
     # Restore original UNIX timestamps
     daily_df.index = original_timestamps.map(
