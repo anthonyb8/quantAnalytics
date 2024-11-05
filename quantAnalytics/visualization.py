@@ -844,3 +844,31 @@ class Visualization:
             plt.close(fig)  # Close the figure to avoid display
         else:
             return fig
+
+    @staticmethod
+    def correlation_heatmap(
+        df: pd.DataFrame,
+        title: str,
+        save_path: str = None,
+    ) -> plt.Figure:
+
+        correlation_matrix = df.corr()
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.heatmap(
+            correlation_matrix,
+            annot=True,
+            cmap="coolwarm",
+            vmin=-1,
+            vmax=1,
+        )
+
+        plt.title(title)
+
+        # Adjust layout to minimize white space
+        plt.tight_layout()
+
+        if save_path:
+            fig.savefig(save_path)
+            plt.close(fig)  # Close the figure to avoid display
+        else:
+            return fig
