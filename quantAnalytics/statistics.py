@@ -80,6 +80,7 @@ class ADFResult(Result):
         # print(ticker, values)
         row = {
             "Name": self.timeseries_name,
+            "Lags": self.data["Lags"],
             "ADF Statistic": self.data["ADF Statistic"],
             "p-value": round(self.data["p-value"], 6),
         }
@@ -501,10 +502,13 @@ class TimeseriesTests:
         result = adfuller(x=series, regression=trend)
         adf_statistic = result[0]
         p_value = result[1]
+        lags = result[2]
+        # num_observations = result[3]
         critical_values = result[4]
 
         # Prepare the results in a clean format
         output = {
+            "Lags": lags,
             "ADF Statistic": adf_statistic,
             "p-value": p_value,
             "Critical Values": critical_values,
