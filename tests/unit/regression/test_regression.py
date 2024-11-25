@@ -3,7 +3,10 @@ import unittest
 import numpy as np
 import pandas as pd
 from io import StringIO
-from quantAnalytics.regression import RegressionAnalysis, RegressionResult
+from quantAnalytics.regression.regression import (
+    RegressionAnalysis,
+    RegressionResult,
+)
 
 
 class RegressionResultsTests(unittest.TestCase):

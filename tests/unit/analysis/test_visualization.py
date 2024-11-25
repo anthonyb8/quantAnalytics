@@ -3,10 +3,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-from quantAnalytics.visualization import Visualization
+from quantAnalytics.analysis.plots import Plot
 
 
-class TestVisualization(unittest.TestCase):
+class TestPlot(unittest.TestCase):
     def setUp(self):
         # Sample data for testing
         self.data = pd.DataFrame(
@@ -30,7 +30,7 @@ class TestVisualization(unittest.TestCase):
         y = pd.Series(np.random.random(10))
 
         # Test
-        fig = Visualization.line_plot(
+        fig = Plot.line_plot(
             x,
             y,
             title="Test Line Plot",
@@ -62,7 +62,7 @@ class TestVisualization(unittest.TestCase):
         colors = {"Series 1": "blue", "Series 2": "red"}
 
         # Plotting
-        fig = Visualization.multi_line_plot(
+        fig = Plot.multi_line_plot(
             data=data,
             title="Custom Multi-Line Plot",
             x_label="Time",
@@ -110,7 +110,7 @@ class TestVisualization(unittest.TestCase):
         ]
 
         # Plot the data with generalized markers
-        fig = Visualization.line_plot_with_markers(
+        fig = Plot.line_plot_with_markers(
             data=data,
             markers=markers,
             x_field="time",
@@ -148,7 +148,7 @@ class TestVisualization(unittest.TestCase):
         std_2 = 2 * secondary_data.rolling(window=20).std()
 
         # Plot with non-timestamp index
-        fig = Visualization.line_plot_dual_axis(
+        fig = Plot.line_plot_dual_axis(
             primary_data=price_data,
             secondary_data=secondary_data,
             primary_label="Stock Prices",
@@ -176,7 +176,7 @@ class TestVisualization(unittest.TestCase):
         )
 
         # Plot the series with rolling statistics
-        fig = Visualization.line_plot_with_std(
+        fig = Plot.line_plot_with_std(
             series=series_data,
             window=20,
             primary_label="Z-Score",
@@ -215,7 +215,7 @@ class TestVisualization(unittest.TestCase):
         ]
 
         # Plot the data with generalized marker fields
-        fig = Visualization.line_plot_dual_axis_with_markers(
+        fig = Plot.line_plot_dual_axis_with_markers(
             primary_data=price_data,
             secondary_data=spread_data,
             markers=markers,
@@ -241,7 +241,7 @@ class TestVisualization(unittest.TestCase):
         data = np.random.normal(loc=0, scale=1, size=1000)
 
         # test
-        fig = Visualization.histogram_ndc(
+        fig = Plot.histogram_ndc(
             data, bins="auto", title="Test Histogram with NDC"
         )
 
@@ -255,7 +255,7 @@ class TestVisualization(unittest.TestCase):
         data = np.random.normal(loc=0, scale=1, size=1000)
 
         # test
-        fig = Visualization.histogram_kde(
+        fig = Plot.histogram_kde(
             data, bins="auto", title="Test Histogram with KDE"
         )
 
@@ -269,7 +269,7 @@ class TestVisualization(unittest.TestCase):
         data = np.random.normal(loc=0, scale=1, size=1000)
 
         # test
-        fig = Visualization.qq_plot(data, title="Test Q-Q Plot")
+        fig = Plot.qq_plot(data, title="Test Q-Q Plot")
 
         # validate
         self.assertIsInstance(fig, plt.Figure)
@@ -281,7 +281,7 @@ class TestVisualization(unittest.TestCase):
         fittedvalues = np.random.normal(loc=0, scale=1, size=1000)
 
         # test
-        fig = Visualization.plot_residuals_vs_fitted(residuals, fittedvalues)
+        fig = Plot.plot_residuals_vs_fitted(residuals, fittedvalues)
 
         # validate
         self.assertIsInstance(fig, plt.Figure)
@@ -292,7 +292,7 @@ class TestVisualization(unittest.TestCase):
         data = np.random.normal(loc=0, scale=1, size=1000)
 
         # test
-        fig = Visualization.plot_influence_measures(data)
+        fig = Plot.plot_influence_measures(data)
 
         # validate
         self.assertIsInstance(fig, plt.Figure)

@@ -1,12 +1,53 @@
 import numpy as np
 import pandas as pd
-from typing import List, Union
+from typing import List, Union, Tuple
 
 
-class DataProcessor:
+class DataHandler:
+    @staticmethod
+    def lag_series(series: pd.Series, lag: int = 1) -> pd.Series:
+        """
+        Lags a pandas series by a given lag.
+
+        Parameters:
+        - series (pd.Series): The timeseries to be lagged.
+        - lag (int): The number lags to be applied to the timeseries.
+
+        Returns:
+        - pd.Series : A pandas series representing the lagged series.
+        """
+        # Create a lagged version of the series
+        series_lagged = series.shift(lag)
+
+        # Remove NaN values and reset the index
+        series_lagged = series_lagged[lag:].reset_index(drop=True)
+
+        return series_lagged
+
+    @staticmethod
+    def split_data(
+        data: pd.DataFrame, train_ratio: float = 0.8
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Splits a pandas dataframe into a train and test dataframe.
+
+        Parameters:
+        - data (pd.DataFrame): The dataframe that is to be split.
+        - train_ratio (float): The portion of original data to be in train dataframe.()
+
+        Returns:
+        - train_data (pd.DataFrame): Represents the portion of the data form the begining to the point equal to the train_ratio.
+        - test_data (pd.DateFrame): Represents the portion of the data from the train_ratio point to the end of the data.
+        """
+        split_index = int(len(data) * train_ratio)
+        train_data = data.iloc[:split_index].copy()
+        test_data = data.iloc[split_index:].copy()
+        return train_data, test_data
+
     @staticmethod
     def align_timestamps(
-        data: Union[pd.DataFrame, pd.Series], missing_values_strategy: str = "fill_forward"
+        data: Union[pd.DataFrame, pd.Series],
+        missing_values_strategy: str = "fill_forward",
     ) -> Union[pd.DataFrame, pd.Series]:
         """
         Handles missing values in a DataFrame according to the specified strategy after pivoting the data for time series analysis.
@@ -19,8 +60,12 @@ class DataProcessor:
         - pd.DataFrame: The DataFrame with missing values handled according to the specified strategy.
         """
 
-        if not isinstance(missing_values_strategy, str) or missing_values_strategy not in ["fill_forward", "drop"]:
-            raise ValueError("'missing_values_strategy' must be either 'fill_forward' or 'drop' of type str.")
+        if not isinstance(
+            missing_values_strategy, str
+        ) or missing_values_strategy not in ["fill_forward", "drop"]:
+            raise ValueError(
+                "'missing_values_strategy' must be either 'fill_forward' or 'drop' of type str."
+            )
 
         if isinstance(data, pd.DataFrame):
             data = data.pivot(index="ts_event", columns="symbol")
@@ -68,7 +113,9 @@ class DataProcessor:
     #     raise TypeError("Input data must be a DataFrame or Series.")
 
     @staticmethod
-    def check_duplicates(data: Union[pd.DataFrame, pd.Series], subset: List[str] = None) -> bool:
+    def check_duplicates(
+        data: Union[pd.DataFrame, pd.Series], subset: List[str] = None
+    ) -> bool:
         """
         Checks for and prints out any duplicate records in the data.
 
@@ -122,9 +169,13 @@ class DataProcessor:
         - TypeError: If the input data is not a DataFrame or Series.
         """
         if isinstance(data, pd.DataFrame):
-            result = data.drop_duplicates(subset=subset, keep=keep).reset_index(drop=True)
+            result = data.drop_duplicates(
+                subset=subset, keep=keep
+            ).reset_index(drop=True)
         elif isinstance(data, pd.Series):
-            result = data.drop_duplicates(keep=keep).reset_index(drop=True, level=0)
+            result = data.drop_duplicates(keep=keep).reset_index(
+                drop=True, level=0
+            )
         else:
             raise TypeError("Input data must be a DataFrame or Series.")
 
@@ -162,12 +213,16 @@ class DataProcessor:
                 Q1 = data.quantile(0.25)
                 Q3 = data.quantile(0.75)
                 IQR = Q3 - Q1
-                outliers = (data < (Q1 - threshold * IQR)) | (data > (Q3 + threshold * IQR))
+                outliers = (data < (Q1 - threshold * IQR)) | (
+                    data > (Q3 + threshold * IQR)
+                )
             else:
                 Q1 = data.quantile(0.25)
                 Q3 = data.quantile(0.75)
                 IQR = Q3 - Q1
-                outliers = (data < (Q1 - threshold * IQR)) | (data > (Q3 + threshold * IQR))
+                outliers = (data < (Q1 - threshold * IQR)) | (
+                    data > (Q3 + threshold * IQR)
+                )
 
         elif method == "Z-score":
             if isinstance(data, pd.DataFrame):
@@ -217,7 +272,9 @@ class DataProcessor:
             Q1 = data.quantile(0.25)
             Q3 = data.quantile(0.75)
             IQR = Q3 - Q1
-            outliers = (data < (Q1 - factor * IQR)) | (data > (Q3 + factor * IQR))
+            outliers = (data < (Q1 - factor * IQR)) | (
+                data > (Q3 + factor * IQR)
+            )
         elif method == "Z-score":
             z_scores = np.abs((data - data.mean()) / data.std())
             outliers = z_scores > factor
@@ -229,14 +286,18 @@ class DataProcessor:
                 data = data[~outliers].reset_index(drop=True)
         elif action == "replace":
             if replacement_value is None:
-                raise ValueError("replacement_value must be specified if action is 'replace'.")
+                raise ValueError(
+                    "replacement_value must be specified if action is 'replace'."
+                )
             data[outliers] = replacement_value
 
         return data
 
     # -- Manipulate --
     @staticmethod
-    def normalize(data: Union[pd.DataFrame, pd.Series], method: str = "column-wise") -> Union[pd.DataFrame, pd.Series]:
+    def normalize(
+        data: Union[pd.DataFrame, pd.Series], method: str = "column-wise"
+    ) -> Union[pd.DataFrame, pd.Series]:
         """
         Normalizes the data to a range of [0, 1].
 
@@ -260,8 +321,16 @@ class DataProcessor:
         if method == "column-wise":
             return (data - data.min()) / (data.max() - data.min())
         elif method == "global":
-            global_min = data.min().min() if isinstance(data, pd.DataFrame) else data.min()
-            global_max = data.max().max() if isinstance(data, pd.DataFrame) else data.max()
+            global_min = (
+                data.min().min()
+                if isinstance(data, pd.DataFrame)
+                else data.min()
+            )
+            global_max = (
+                data.max().max()
+                if isinstance(data, pd.DataFrame)
+                else data.max()
+            )
             return (data - global_min) / (global_max - global_min)
 
     @staticmethod
@@ -291,8 +360,16 @@ class DataProcessor:
         if method == "column-wise":
             return (data - data.mean()) / data.std()
         elif method == "global":
-            global_mean = data.values.mean() if isinstance(data, pd.DataFrame) else data.mean()
-            global_std = data.values.std() if isinstance(data, pd.DataFrame) else data.std()
+            global_mean = (
+                data.values.mean()
+                if isinstance(data, pd.DataFrame)
+                else data.mean()
+            )
+            global_std = (
+                data.values.std()
+                if isinstance(data, pd.DataFrame)
+                else data.std()
+            )
             return (data - global_mean) / global_std
 
     @staticmethod

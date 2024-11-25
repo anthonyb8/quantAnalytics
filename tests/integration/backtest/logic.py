@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from enum import Enum, auto
 from quantAnalytics.backtest.base_strategy import BaseStrategy
-from quantAnalytics.report import DivBuilder, Header
+from quantAnalytics.report.report import DivBuilder, Header
 
 
 class Signal(Enum):

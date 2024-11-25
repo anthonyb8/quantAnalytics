@@ -1,18 +1,17 @@
 import numpy as np
 import pandas as pd
-from quantAnalytics.risk import RiskAnalysis
-from quantAnalytics.report import (
+from quantAnalytics.report.report import (
     ReportBuilder,
     DivBuilder,
     Header,
 )
 from quantAnalytics.utils import resample_daily
 from quantAnalytics.backtest.base_strategy import BaseStrategy
-from quantAnalytics.performance import PerformanceStatistics
-from quantAnalytics.visualization import Visualization
+from quantAnalytics.backtest.metrics import Metrics
+from quantAnalytics.analysis.plots import Plot
 
 
-class VectorizedBacktest(PerformanceStatistics):
+class VectorizedBacktest(Metrics):
     """
     A class for conducting vectorized backtesting of trading strategies on historical data.
 
@@ -230,7 +229,7 @@ class VectorizedBacktest(PerformanceStatistics):
         # Update test DataFrame
         self.data["period_return"] = period_returns_adjusted
         self.data["cumulative_return"] = cumulative_returns_adjusted
-        self.data["drawdown"] = RiskAnalysis.drawdown(period_returns_adjusted)
+        self.data["drawdown"] = Metrics.drawdown(period_returns_adjusted)
 
         # Compute simple and cumulative returns daily data
         daily_returns = self.simple_returns(daily_equity_values.values)
@@ -249,22 +248,18 @@ class VectorizedBacktest(PerformanceStatistics):
         self.daily_data["cumulative_return"] = (
             daily_cumulative_returns_adjusted
         )
-        self.daily_data["drawdown"] = RiskAnalysis.drawdown(
-            daily_returns_adjusted
-        )
+        self.daily_data["drawdown"] = Metrics.drawdown(daily_returns_adjusted)
 
         # Calculate summary statistics
         self.summary_stats = {
-            "annual_standard_deviation": RiskAnalysis.annual_standard_deviation(
+            "annual_standard_deviation": Metrics.annual_standard_deviation(
                 daily_returns_adjusted
             ),
-            "sharpe_ratio": RiskAnalysis.sharpe_ratio(
+            "sharpe_ratio": Metrics.sharpe_ratio(
                 daily_returns_adjusted, risk_free_rate
             ),
-            "sortino_ratio": RiskAnalysis.sortino_ratio(
-                daily_returns_adjusted
-            ),
-            "max_drawdown": RiskAnalysis.max_drawdown(
+            "sortino_ratio": Metrics.sortino_ratio(daily_returns_adjusted),
+            "max_drawdown": Metrics.max_drawdown(
                 period_returns_adjusted
             ),  # standardized
             "ending_equity": equity_values.values[-1],  # raw
@@ -312,7 +307,7 @@ class VectorizedBacktest(PerformanceStatistics):
 
         # Plots
         equity_plot_path = f"{self.output_dir}/equity_plot.png"
-        Visualization.line_plot(
+        Plot.line_plot(
             x=pd.to_datetime(self.data.index, unit="ns"),
             y=self.data["equity_value"],
             title="Equity Curve",
@@ -322,7 +317,7 @@ class VectorizedBacktest(PerformanceStatistics):
         )
 
         cum_return_path = f"{self.output_dir}/return_plot.png"
-        Visualization.line_plot(
+        Plot.line_plot(
             x=pd.to_datetime(self.data.index, unit="ns"),
             y=self.data["cumulative_return"],
             title="Cumulative Return",
@@ -332,7 +327,7 @@ class VectorizedBacktest(PerformanceStatistics):
         )
 
         drawdown_path = f"{self.output_dir}/drawdown_plot.png"
-        Visualization.line_plot(
+        Plot.line_plot(
             x=pd.to_datetime(self.data.index, unit="ns"),
             y=self.data["drawdown"].tolist(),
             title="Drawdown Curve",

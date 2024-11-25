@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from unittest.mock import Mock, MagicMock
-from quantAnalytics.report import ReportBuilder, DivBuilder, Header
+from quantAnalytics.report.report import ReportBuilder, DivBuilder, Header
 import shutil
 
 
@@ -78,7 +78,9 @@ class TestReportGenerator(unittest.TestCase):
 
         # Validate
         report_content = self.report._content
-        self.assertIn('<p class="para">Hello this is a paragraph</p>', report_content)
+        self.assertIn(
+            '<p class="para">Hello this is a paragraph</p>', report_content
+        )
 
     def test_add_unorderdlist_dict(self):
         # Test
@@ -86,7 +88,9 @@ class TestReportGenerator(unittest.TestCase):
         self.report.add_unorderedlist_dict(summary_dict, True, "dict1")
 
         summary_dict = {"key1": "value1", "key2": "value2"}
-        self.report.add_unorderedlist_dict(summary_dict, bold_key=False, css_class="dict2")
+        self.report.add_unorderedlist_dict(
+            summary_dict, bold_key=False, css_class="dict2"
+        )
 
         # Validate
         report_content = self.report._content
@@ -143,7 +147,10 @@ class TestReportGenerator(unittest.TestCase):
 
         # Validate
         report_content = self.report._content
-        self.assertIn(f"""<img src="output_plot.png" class="image1" alt="Plot Image"><br>""", report_content)
+        self.assertIn(
+            f"""<img src="output_plot.png" class="image1" alt="Plot Image"><br>""",
+            report_content,
+        )
 
     def test_complete_report(self):
         # Setup
@@ -168,7 +175,10 @@ class TestReportGenerator(unittest.TestCase):
 
         # Validate
         report_content = self.report._content
-        self.assertIn('\n<h2>Header Test</h2><p class="para">Hello this is a paragraph</p>', report_content)
+        self.assertIn(
+            '\n<h2>Header Test</h2><p class="para">Hello this is a paragraph</p>',
+            report_content,
+        )
 
     def test_full_build(self):
         # Test
@@ -185,22 +195,36 @@ class TestReportGenerator(unittest.TestCase):
         # fmt: on
 
         # Validate
-        if os.path.exists(self.output_directory):  # Make sure you reference the correct file path
+        if os.path.exists(
+            self.output_directory
+        ):  # Make sure you reference the correct file path
             # Open and read the generated file
             with open(self.report.file_path, "r") as f:
                 content = f.read()
 
             # Optionally, validate content (simple check for specific elements)
-            assert "Header1" in content, "Header is missing in the generated file."
-            assert "Hello this is a paragraph" in content, "Paragraph is missing in the generated file."
-            assert '<ul class="list1">' in content, "Unordered list is missing in the generated file."
-            assert "<strong>key1:</strong>" in content, "Dictionary values are missing in the generated file."
-            assert '<h2 class="div_header">DivHeader</h2>' in content, "Div missing from file."
+            assert (
+                "Header1" in content
+            ), "Header is missing in the generated file."
+            assert (
+                "Hello this is a paragraph" in content
+            ), "Paragraph is missing in the generated file."
+            assert (
+                '<ul class="list1">' in content
+            ), "Unordered list is missing in the generated file."
+            assert (
+                "<strong>key1:</strong>" in content
+            ), "Dictionary values are missing in the generated file."
+            assert (
+                '<h2 class="div_header">DivHeader</h2>' in content
+            ), "Div missing from file."
 
     # error handling
     def test_complete_report_errors(self):
         # Setup
-        self.report._generate_html = MagicMock(side_effect=Exception("HTML generation error"))
+        self.report._generate_html = MagicMock(
+            side_effect=Exception("HTML generation error")
+        )
         self.report._generate_pdf = Mock()
 
         # Test

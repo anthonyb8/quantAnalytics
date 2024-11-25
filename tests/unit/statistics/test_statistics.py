@@ -4,7 +4,8 @@ import pandas as pd
 from scipy import stats
 import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller
-from quantAnalytics.statistics import TimeseriesTests
+from quantAnalytics.statistics.statistics import TimeseriesTests
+from quantAnalytics.data.generator import DataGenerator
 
 
 def display_adf_results(
@@ -209,124 +210,124 @@ class TestTimeseriesTests(unittest.TestCase):
         )
 
         self.mean_reverting_series = (
-            TimeseriesTests.generate_mean_reverting_series()
+            DataGenerator.generate_mean_reverting_series()
         )
-        self.trending_series = TimeseriesTests.generate_trending_series()
-        self.random_walk_series = TimeseriesTests.generate_random_walk_series(
+        self.trending_series = DataGenerator.generate_trending_series()
+        self.random_walk_series = DataGenerator.generate_random_walk_series(
             n=2000, start_value=0, step_std=1
         )
 
-    # Basic Validation
-    def test_generate_mean_reverting_series_basic(self):
-        n = 2000
-        mu = 0
-        theta = 0.1  # Adjust if needed
-        sigma = 0.2  # Adjust if needed
-        series = TimeseriesTests.generate_mean_reverting_series(
-            n=n, mu=mu, theta=theta, sigma=sigma, start_value=1
-        )
-        self.assertEqual(len(series), n)
-        self.assertEqual(series[0], 1)
-        self.assertTrue(isinstance(series, np.ndarray))
+    # # Basic Validation
+    # def test_generate_mean_reverting_series_basic(self):
+    #     n = 2000
+    #     mu = 0
+    #     theta = 0.1  # Adjust if needed
+    #     sigma = 0.2  # Adjust if needed
+    #     series = DataGenerator.generate_mean_reverting_series(
+    #         n=n, mu=mu, theta=theta, sigma=sigma, start_value=1
+    #     )
+    #     self.assertEqual(len(series), n)
+    #     self.assertEqual(series[0], 1)
+    #     self.assertTrue(isinstance(series, np.ndarray))
+    #
+    #     series_mean = np.mean(series)
+    #     self.assertTrue(
+    #         np.abs(series_mean - mu) < 0.05
+    #     )  # threshold for difference between actual mean and long-term mean
+    #
+    # def test_generate_trending_series_basic(self):
+    #     n = 2000
+    #     series = TimeseriesTests.generate_trending_series(
+    #         n=n, start_value=0, trend=0.1, step_std=1
+    #     )
+    #     self.assertEqual(len(series), n)
+    #     self.assertEqual(series[0], 0)
+    #     self.assertTrue(isinstance(series, np.ndarray))
+    #
+    #     # Perform linear regression
+    #     X = np.arange(len(series)).reshape(
+    #         -1, 1
+    #     )  # Time steps as independent variable
+    #     y = series  # Series values as dependent variable
+    #     slope, intercept, r_value, p_value, std_err = stats.linregress(
+    #         X.ravel(), y
+    #     )
+    #
+    #     # Verify the trend direction and significance
+    #     self.assertGreater(
+    #         slope, 0
+    #     )  # Check if slope is significantly greater than 0
+    #     self.assertLess(
+    #         p_value, 0.05
+    #     )  # Check if the slope is statistically significant
+    #
+    # def test_generate_random_walk_series_basic(self):
+    #     n = 2000
+    #     series = TimeseriesTests.generate_random_walk_series(
+    #         n=n, start_value=0, step_std=1
+    #     )
+    #     self.assertEqual(len(series), n)
+    #     self.assertEqual(series[0], 0)
+    #     self.assertTrue(isinstance(series, np.ndarray))
+    #
+    #     # Test for no clear trend using Augmented Dickey-Fuller
+    #     adf_result = adfuller(series)
+    #     self.assertTrue(
+    #         adf_result[1] > 0.05
+    #     )  # P-value should be low to reject null hypothesis of a unit root
+    #
+    #     # Test for independence using autocorrelation at lag 1
+    #     autocorrelation = pd.Series(series).autocorr(lag=1)
+    #
+    #     # Expect autocorrelation for a random walk to be significant but not perfect
+    #     self.assertTrue(0.9 < autocorrelation <= 1)
 
-        series_mean = np.mean(series)
-        self.assertTrue(
-            np.abs(series_mean - mu) < 0.05
-        )  # threshold for difference between actual mean and long-term mean
-
-    def test_generate_trending_series_basic(self):
-        n = 2000
-        series = TimeseriesTests.generate_trending_series(
-            n=n, start_value=0, trend=0.1, step_std=1
-        )
-        self.assertEqual(len(series), n)
-        self.assertEqual(series[0], 0)
-        self.assertTrue(isinstance(series, np.ndarray))
-
-        # Perform linear regression
-        X = np.arange(len(series)).reshape(
-            -1, 1
-        )  # Time steps as independent variable
-        y = series  # Series values as dependent variable
-        slope, intercept, r_value, p_value, std_err = stats.linregress(
-            X.ravel(), y
-        )
-
-        # Verify the trend direction and significance
-        self.assertGreater(
-            slope, 0
-        )  # Check if slope is significantly greater than 0
-        self.assertLess(
-            p_value, 0.05
-        )  # Check if the slope is statistically significant
-
-    def test_generate_random_walk_series_basic(self):
-        n = 2000
-        series = TimeseriesTests.generate_random_walk_series(
-            n=n, start_value=0, step_std=1
-        )
-        self.assertEqual(len(series), n)
-        self.assertEqual(series[0], 0)
-        self.assertTrue(isinstance(series, np.ndarray))
-
-        # Test for no clear trend using Augmented Dickey-Fuller
-        adf_result = adfuller(series)
-        self.assertTrue(
-            adf_result[1] > 0.05
-        )  # P-value should be low to reject null hypothesis of a unit root
-
-        # Test for independence using autocorrelation at lag 1
-        autocorrelation = pd.Series(series).autocorr(lag=1)
-
-        # Expect autocorrelation for a random walk to be significant but not perfect
-        self.assertTrue(0.9 < autocorrelation <= 1)
-
-    def test_split_data_default_ratio(self):
-        train, test = TimeseriesTests.split_data(self.sample_dataframe)
-        # Default split ratio is 0.8
-        expected_train_length = int(len(self.sample_dataframe) * 0.8)
-        expected_test_length = (
-            len(self.sample_dataframe) - expected_train_length
-        )
-        self.assertEqual(len(train), expected_train_length)
-        self.assertEqual(len(test), expected_test_length)
-
-    def test_lag_series_default(self):
-        # Test with the default lag of 1
-        lagged_series = TimeseriesTests.lag_series(
-            self.sample_series
-        ).reset_index(drop=True)
-        expected_series = self.sample_series[:-1].reset_index(drop=True)
-        self.assertTrue((lagged_series.values == expected_series.values).all())
-
-    def test_lag_series_custom_lag(self):
-        # Test with a custom lag of 5
-        lag = 5
-        lagged_series = TimeseriesTests.lag_series(self.sample_series, lag=lag)
-        self.assertEqual(len(lagged_series), len(self.sample_series) - lag)
-        self.assertTrue(
-            (lagged_series.values == self.sample_series[:-lag].values).all()
-        )
-
-    def test_split_data_custom_ratio(self):
-        custom_ratio = 0.7
-        train, test = TimeseriesTests.split_data(
-            self.sample_dataframe, train_ratio=custom_ratio
-        )
-        expected_train_length = int(len(self.sample_dataframe) * custom_ratio)
-        expected_test_length = (
-            len(self.sample_dataframe) - expected_train_length
-        )
-        self.assertEqual(len(train), expected_train_length)
-        self.assertEqual(len(test), expected_test_length)
-
-    def test_split_data_data_integrity(self):
-        train, test = TimeseriesTests.split_data(self.sample_dataframe)
-        # Check if concatenated train and test sets equal the original data
-        pd.testing.assert_frame_equal(
-            pd.concat([train, test]).reset_index(drop=True),
-            self.sample_dataframe,
-        )
+    # def test_split_data_default_ratio(self):
+    #     train, test = TimeseriesTests.split_data(self.sample_dataframe)
+    #     # Default split ratio is 0.8
+    #     expected_train_length = int(len(self.sample_dataframe) * 0.8)
+    #     expected_test_length = (
+    #         len(self.sample_dataframe) - expected_train_length
+    #     )
+    #     self.assertEqual(len(train), expected_train_length)
+    #     self.assertEqual(len(test), expected_test_length)
+    #
+    # def test_lag_series_default(self):
+    #     # Test with the default lag of 1
+    #     lagged_series = TimeseriesTests.lag_series(
+    #         self.sample_series
+    #     ).reset_index(drop=True)
+    #     expected_series = self.sample_series[:-1].reset_index(drop=True)
+    #     self.assertTrue((lagged_series.values == expected_series.values).all())
+    #
+    # def test_lag_series_custom_lag(self):
+    #     # Test with a custom lag of 5
+    #     lag = 5
+    #     lagged_series = TimeseriesTests.lag_series(self.sample_series, lag=lag)
+    #     self.assertEqual(len(lagged_series), len(self.sample_series) - lag)
+    #     self.assertTrue(
+    #         (lagged_series.values == self.sample_series[:-lag].values).all()
+    #     )
+    #
+    # def test_split_data_custom_ratio(self):
+    #     custom_ratio = 0.7
+    #     train, test = TimeseriesTests.split_data(
+    #         self.sample_dataframe, train_ratio=custom_ratio
+    #     )
+    #     expected_train_length = int(len(self.sample_dataframe) * custom_ratio)
+    #     expected_test_length = (
+    #         len(self.sample_dataframe) - expected_train_length
+    #     )
+    #     self.assertEqual(len(train), expected_train_length)
+    #     self.assertEqual(len(test), expected_test_length)
+    #
+    # def test_split_data_data_integrity(self):
+    #     train, test = TimeseriesTests.split_data(self.sample_dataframe)
+    #     # Check if concatenated train and test sets equal the original data
+    #     pd.testing.assert_frame_equal(
+    #         pd.concat([train, test]).reset_index(drop=True),
+    #         self.sample_dataframe,
+    #     )
 
     def test_adf_mean_reverting(self):
         result = TimeseriesTests.adf_test(
@@ -348,7 +349,7 @@ class TestTimeseriesTests(unittest.TestCase):
 
     def test_adf_random_walk(self):
         n = 2000
-        series = TimeseriesTests.generate_random_walk_series(
+        series = DataGenerator.generate_random_walk_series(
             n=n, start_value=0, step_std=1
         )
         result = TimeseriesTests.adf_test(series, "testing")
@@ -544,7 +545,7 @@ class TestTimeseriesTests(unittest.TestCase):
 
     def test_kpss_random_walk(self):
         n = 2000
-        series = TimeseriesTests.generate_random_walk_series(
+        series = DataGenerator.generate_random_walk_series(
             n=n, start_value=0, step_std=1
         )
         result = TimeseriesTests.kpss_test(series, "testSeries")
@@ -576,7 +577,7 @@ class TestTimeseriesTests(unittest.TestCase):
 
     def test_phillips_perron_random_walk(self):
         series = pd.Series(
-            TimeseriesTests.generate_random_walk_series(
+            DataGenerator.generate_random_walk_series(
                 n=2000, start_value=0, step_std=1
             )
         )

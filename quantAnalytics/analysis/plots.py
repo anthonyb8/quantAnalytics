@@ -8,7 +8,7 @@ from scipy.stats import norm
 import statsmodels.api as sm
 
 
-class Visualization:
+class Plot:
     @staticmethod
     def line_plot(
         x: pd.Series,
@@ -42,7 +42,7 @@ class Visualization:
         - plt.Figure: The line plot.
 
         Example:
-        >>> Visualizations.line_plot(x, y, title='Test Line Plot', x_label='Index', y_label='Value', color='red')
+        >>> Plots.line_plot(x, y, title='Test Line Plot', x_label='Index', y_label='Value', color='red')
         >>> plt.show()
         """
         fig, ax = plt.subplots(figsize=(10, 6))
@@ -106,7 +106,7 @@ class Visualization:
                 "Series 1": "blue",
                 "Series 2": "red"
             }
-        >>> Visualizations.multi_line_plot(data, title="Example Plot")
+        >>> Plots.multi_line_plot(data, title="Example Plot")
         >>> plt.show()
         """
         # Create the figure and axis
@@ -196,7 +196,7 @@ class Visualization:
         Example:
         >>> data = pd.DataFrame({'symbol1': [1, 2, 3], 'symbol2': [4, 5, 6]}, index=pd.date_range('2023-01-01', periods=3))
         >>> markers = [{'time': '2023-01-01', 'value': 2, 'signal': 1}, {'time': '2023-01-02', 'value': 5, 'signal': -1}]
-        >>> fig = Visualizations.line_plot_with_markers(data, markers, x_field="time", y_field="value", marker_field="signal")
+        >>> fig = Plots.line_plot_with_markers(data, markers, x_field="time", y_field="value", marker_field="signal")
         >>> plt.show()
         """
         fig, ax = plt.subplots(figsize=(15, 7))

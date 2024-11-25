@@ -1,5 +1,5 @@
 from .logic import Cointegrationzscore
-from quantAnalytics.dataprocessor import DataProcessor
+from quantAnalytics.data.handler import DataHandler
 from quantAnalytics.backtest.backtester import VectorizedBacktest
 from mbn import BufferStore
 
@@ -13,9 +13,9 @@ def main():
 
     # Process Data
     df.drop(columns=["length", "rtype", "instrument_id"], inplace=True)
-    print(DataProcessor.check_duplicates(df))
-    print(DataProcessor.check_null(df))
-    df = DataProcessor.align_timestamps(df, "drop")
+    print(DataHandler.check_duplicates(df))
+    print(DataHandler.check_null(df))
+    df = DataHandler.align_timestamps(df, "drop")
     df = df.pivot(index="ts_event", columns="symbol", values="close")
     df.dropna(inplace=True)
 

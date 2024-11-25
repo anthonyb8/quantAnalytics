@@ -1,23 +1,137 @@
 import unittest
 import numpy as np
 import pandas as pd
-from quantAnalytics.risk import RiskAnalysis, AnnualizedVolZScore
+from quantAnalytics.backtest.metrics import (
+    Metrics,
+    # Metrics,
+    AnnualizedVolZScore,
+)
 
 
-class TestRiskAnalysis(unittest.TestCase):
+class TestMetrics(unittest.TestCase):
     def setUp(self):
-        # Sample equity curve and trade log for testing
         self.equity_curve = np.array([100, 105, 103, 110, 108])
+        self.daily_returns = np.array([0.001, -0.002, 0.003, 0.002, -0.001])
         self.returns = np.array([0.05, -0.01904762, 0.06796117, -0.01818182])
         self.benchmark_equity_curve = np.array([100, 103, 102, 106, 108])
 
+    # Basic Validation
+    def test_simple_returns(self):
+        # expected
+        expected_returns = np.array([0.05, -0.019047, 0.067961, -0.018181])
+
+        # test
+        actual = Metrics.simple_returns(self.equity_curve)
+
+        # validate
+        np.testing.assert_allclose(actual, expected_returns, atol=1e-5)
+
+    def test_log_returns(self):
+        # expected
+        expected_returns = np.array(
+            [0.04879016, -0.01923136, 0.06575138, -0.01834914]
+        )
+
+        # test
+        actual = Metrics.log_returns(self.equity_curve)
+
+        # validate
+        np.testing.assert_allclose(actual, expected_returns, atol=1e-5)
+
+    def test_cumulative_return(self):
+        # expected
+        expected_cumulative_returns = np.array([0.05, 0.03, 0.10, 0.08])
+
+        # test
+        cumulative_returns = Metrics.cumulative_returns(self.equity_curve)
+
+        # validate
+        np.testing.assert_array_almost_equal(
+            cumulative_returns, expected_cumulative_returns, decimal=4
+        )
+
+    def test_total_return(self):
+        # expected
+        expected_total_return = 0.08
+
+        # test
+        total_return = Metrics.total_return(self.equity_curve)
+
+        # validate
+        self.assertEqual(total_return, expected_total_return)
+
+    def test_annualize_returns(self):
+        # expected
+        compounded_growth = (1 + self.daily_returns).prod()
+        n_periods = self.daily_returns.shape[0]
+        expected_annualized_return = compounded_growth ** (252 / n_periods) - 1
+
+        # test
+        actual = Metrics.annualize_returns(self.daily_returns)
+
+        # validate
+        self.assertAlmostEqual(actual, expected_annualized_return)
+
+    def test_net_profit(self):
+        # expected
+        expected_net_profit = self.equity_curve[-1] - self.equity_curve[0]
+
+        # test
+        actual = Metrics.net_profit(self.equity_curve)
+
+        # validate
+        self.assertAlmostEqual(actual, expected_net_profit)
+
+    # Type Constraint
+    def test_simple_returns_type_error(self):
+        with self.assertRaises(TypeError):
+            Metrics.simple_returns([1, 2, 3, 4, 5])
+
+    def test_log_returns_type_error(self):
+        with self.assertRaises(TypeError):
+            Metrics.log_returns([1, 2, 3, 4, 5])
+
+    def test_cumulative_return_type_error(self):
+        with self.assertRaises(TypeError):
+            Metrics.cumulative_returns([10, -5, 15])
+
+    def test_total_return_type_error(self):
+        with self.assertRaises(TypeError):
+            Metrics.total_return([10, -5, 15])
+
+    def test_annualize_returns_type_error(self):
+        with self.assertRaises(TypeError):
+            Metrics.annualize_returns([1, 2, 3, 4, 5])
+
+    # Error Handling
+    def test_simple_returns_calculation_error(self):
+        with self.assertRaises(Exception):
+            Metrics.simple_returns(np.array([1, 2, 3, "4"]))
+
+    def test_log_returns_calculation_error(self):
+        with self.assertRaises(Exception):
+            Metrics.log_returns(np.array([1, 2, 3, "4"]))
+
+    def test_cumulative_returns_calculation_error(self):
+        with self.assertRaises(Exception):
+            Metrics.cumulative_returns(np.array([1, 2, 3, "4"]))
+
+    def test_total_returns_calculation_error(self):
+        with self.assertRaises(Exception):
+            Metrics.total_return(np.array([1, 2, 3, "4"]))
+
+    def test_annualize_returns_calculation_error(self):
+        with self.assertRaises(Exception):
+            Metrics.annualize_returns(np.array([1, 2, 3, "4"]))
+
+    # Edge Case
     # Basic Validation
     def test_drawdown(self):
         # expected
         expected_drawdowns = np.array([0, -0.01914, 0, -0.01818])
 
         # test
-        drawdowns = RiskAnalysis.drawdown(self.returns)
+        drawdowns = Metrics.drawdown(self.returns)
 
         # validate
         np.testing.assert_array_almost_equal(
@@ -29,7 +143,7 @@ class TestRiskAnalysis(unittest.TestCase):
         expected_max_drawdown = -0.019048
 
         # test
-        max_drawdown = RiskAnalysis.max_drawdown(self.returns)
+        max_drawdown = Metrics.max_drawdown(self.returns)
 
         # validate
         self.assertEqual(max_drawdown, expected_max_drawdown)
@@ -39,7 +153,7 @@ class TestRiskAnalysis(unittest.TestCase):
         expected_annual_std_dev = np.std(self.returns, ddof=1)
 
         # test
-        annual_std_dev = RiskAnalysis.standard_deviation(self.returns)
+        annual_std_dev = Metrics.standard_deviation(self.returns)
 
         # validate
         self.assertAlmostEqual(
@@ -51,7 +165,7 @@ class TestRiskAnalysis(unittest.TestCase):
         expected_annual_std_dev = np.std(self.returns, ddof=1) * np.sqrt(252)
 
         # test
-        annual_std_dev = RiskAnalysis.annual_standard_deviation(self.returns)
+        annual_std_dev = Metrics.annual_standard_deviation(self.returns)
 
         # validate
         self.assertAlmostEqual(
@@ -75,7 +189,7 @@ class TestRiskAnalysis(unittest.TestCase):
         )
 
         # test
-        sharpe_ratio = RiskAnalysis.sharpe_ratio(self.returns)
+        sharpe_ratio = Metrics.sharpe_ratio(self.returns)
 
         # validate
         self.assertAlmostEqual(sharpe_ratio, expected_sharpe_ratio, places=3)
@@ -95,7 +209,7 @@ class TestRiskAnalysis(unittest.TestCase):
             expected_sortino_ratio = 0.0
 
         # test
-        sortino_ratio = RiskAnalysis.sortino_ratio(self.returns)
+        sortino_ratio = Metrics.sortino_ratio(self.returns)
 
         # validate
         self.assertAlmostEqual(sortino_ratio, expected_sortino_ratio, places=4)
@@ -104,7 +218,7 @@ class TestRiskAnalysis(unittest.TestCase):
         expected = np.percentile(self.returns, 0.05 * 100)
 
         # test
-        result = RiskAnalysis.value_at_risk(self.returns)
+        result = Metrics.value_at_risk(self.returns)
 
         # validate
         self.assertEqual(result, expected)
@@ -115,7 +229,7 @@ class TestRiskAnalysis(unittest.TestCase):
         expected = tail_losses.mean()
 
         # test
-        result = RiskAnalysis.conditional_value_at_risk(self.returns)
+        result = Metrics.conditional_value_at_risk(self.returns)
 
         # validate
         self.assertEqual(result, expected)
@@ -127,9 +241,7 @@ class TestRiskAnalysis(unittest.TestCase):
 
         # test
         volatility_results = (
-            RiskAnalysis.calculate_volatility_and_zscore_annualized(
-                self.returns
-            )
+            Metrics.calculate_volatility_and_zscore_annualized(self.returns)
         )
 
         # validate
@@ -172,38 +284,38 @@ class TestRiskAnalysis(unittest.TestCase):
     # Type Constraints
     def test_drawdown_type_check(self):
         with self.assertRaises(TypeError):
-            RiskAnalysis.drawdown([10, -5, 15])
+            Metrics.drawdown([10, -5, 15])
 
     def test_max_drawdown_type_check(self):
         with self.assertRaises(TypeError):
-            RiskAnalysis.max_drawdown([10, -5, 15])
+            Metrics.max_drawdown([10, -5, 15])
 
     def test_annual_standard_deviation_type_check(self):
         with self.assertRaises(TypeError):
-            RiskAnalysis.annual_standard_deviation([10, -5, 15])
+            Metrics.annual_standard_deviation([10, -5, 15])
 
     def test_sharpe_ratio_type_check(self):
         with self.assertRaises(TypeError):
-            RiskAnalysis.sharpe_ratio([10, -5, 15])
+            Metrics.sharpe_ratio([10, -5, 15])
 
     def test_sortino_ratio_type_check(self):
         # Test with incorrect type (should raise an error or handle gracefully)
         with self.assertRaises(TypeError):
-            RiskAnalysis.sortino_ratio([10, -5, 15])
+            Metrics.sortino_ratio([10, -5, 15])
 
         # Test with missing column
         with self.assertRaises(TypeError):
-            RiskAnalysis.sortino_ratio(pd.DataFrame())
+            Metrics.sortino_ratio(pd.DataFrame())
 
     def test_value_at_risk_type_check(self):
         # Test with incorrect type (should raise an error or handle gracefully)
         with self.assertRaises(TypeError):
-            RiskAnalysis.value_at_risk([10, -5, 15])
+            Metrics.value_at_risk([10, -5, 15])
 
     def test_conditional_value_at_risk_type_check(self):
         # Test with incorrect type (should raise an error or handle gracefully)
         with self.assertRaises(TypeError):
-            RiskAnalysis.conditional_value_at_risk([10, -5, 15])
+            Metrics.conditional_value_at_risk([10, -5, 15])
 
     # Edge Cases
     def test_drawdown_null_handling(self):
@@ -211,7 +323,7 @@ class TestRiskAnalysis(unittest.TestCase):
         equity_curve = np.array(list)
 
         # test
-        result = RiskAnalysis.drawdown(equity_curve)
+        result = Metrics.drawdown(equity_curve)
 
         # validate
         self.assertIsInstance(result, np.ndarray)
@@ -224,7 +336,7 @@ class TestRiskAnalysis(unittest.TestCase):
         equity_curve = np.array(list)
 
         # test
-        result = RiskAnalysis.drawdown(equity_curve)
+        result = Metrics.drawdown(equity_curve)
 
         # validate
         self.assertIsInstance(result, np.ndarray)
@@ -235,7 +347,7 @@ class TestRiskAnalysis(unittest.TestCase):
         equity_curve = np.array(list)
 
         # test
-        result = RiskAnalysis.annual_standard_deviation(equity_curve)
+        result = Metrics.annual_standard_deviation(equity_curve)
 
         # validate
         self.assertIsInstance(result, np.ndarray)
@@ -247,7 +359,7 @@ class TestRiskAnalysis(unittest.TestCase):
         equity_curve = np.array(list)
 
         # test
-        result = RiskAnalysis.sharpe_ratio(equity_curve)
+        result = Metrics.sharpe_ratio(equity_curve)
 
         # validate
         self.assertIsInstance(result, np.ndarray)
@@ -255,7 +367,7 @@ class TestRiskAnalysis(unittest.TestCase):
 
     def test_sortino_ratio_null_handling(self):
         # test
-        result = RiskAnalysis.sortino_ratio(np.array([]))
+        result = Metrics.sortino_ratio(np.array([]))
 
         # validate
         self.assertEqual(result, 0)

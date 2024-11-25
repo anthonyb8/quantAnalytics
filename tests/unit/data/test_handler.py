@@ -2,7 +2,8 @@ import unittest
 import pandas as pd
 from typing import List, Dict
 from pandas.testing import assert_frame_equal
-from quantAnalytics.dataprocessor import DataProcessor
+from quantAnalytics.data.handler import DataHandler
+import numpy as np
 
 
 def valid_process_data(db_response: List[Dict]):
@@ -18,7 +19,15 @@ def valid_process_data(db_response: List[Dict]):
     return df
 
 
-class TestDataProcessor(unittest.TestCase):
+class TestDataHandler(unittest.TestCase):
+    def setUp(self):
+        # Create sample time series data
+        np.random.seed(0)
+        self.sample_series = pd.Series(np.random.randn(100))
+        self.sample_dataframe = pd.DataFrame(
+            {"series1": np.random.randn(100), "series2": np.random.randn(100)}
+        )
+
     # Basic Validation
     def test_check_null_df_with_null(self):
         """Test check_missing with a dataframe containing missing values."""
@@ -29,7 +38,7 @@ class TestDataProcessor(unittest.TestCase):
             }
         )
         # test
-        response = DataProcessor.check_null(self.data_with_missing)
+        response = DataHandler.check_null(self.data_with_missing)
 
         # validate
         self.assertTrue(response)
@@ -39,7 +48,7 @@ class TestDataProcessor(unittest.TestCase):
         self.data_with_missing = pd.Series([1, None, 3])
 
         # test
-        response = DataProcessor.check_null(self.data_with_missing)
+        response = DataHandler.check_null(self.data_with_missing)
 
         # validate
         self.assertTrue(response)
@@ -54,7 +63,7 @@ class TestDataProcessor(unittest.TestCase):
         )
 
         # test
-        response = DataProcessor.check_null(self.data_without_missing)
+        response = DataHandler.check_null(self.data_without_missing)
 
         # validate
         self.assertFalse(response)
@@ -64,7 +73,7 @@ class TestDataProcessor(unittest.TestCase):
         self.data_without_missing = pd.Series([1, 2, 3])
 
         # test
-        response = DataProcessor.check_null(self.data_without_missing)
+        response = DataHandler.check_null(self.data_without_missing)
 
         # validate
         self.assertFalse(response)
@@ -229,7 +238,7 @@ class TestDataProcessor(unittest.TestCase):
         # Test
         df = pd.DataFrame(response_missing_data)
         df.drop(columns=["id"], inplace=True)
-        result = DataProcessor.align_timestamps(
+        result = DataHandler.align_timestamps(
             data=df, missing_values_strategy="fill_forward"
         )
 
@@ -378,7 +387,7 @@ class TestDataProcessor(unittest.TestCase):
         # Test
         df = pd.DataFrame(response_missing_data)
         df.drop(columns=["id"], inplace=True)
-        result = DataProcessor.align_timestamps(
+        result = DataHandler.align_timestamps(
             data=df, missing_values_strategy="drop"
         )
 
@@ -392,7 +401,7 @@ class TestDataProcessor(unittest.TestCase):
         expected = pd.Series([1, 2, 2, 3])
 
         # Test
-        result = DataProcessor.align_timestamps(
+        result = DataHandler.align_timestamps(
             data, missing_values_strategy="fill_forward"
         )
 
@@ -406,7 +415,7 @@ class TestDataProcessor(unittest.TestCase):
         expected = pd.Series([1, 2, 3])
 
         # Test
-        result = DataProcessor.align_timestamps(
+        result = DataHandler.align_timestamps(
             data, missing_values_strategy="drop"
         )
 
@@ -422,7 +431,7 @@ class TestDataProcessor(unittest.TestCase):
         )
 
         # Test
-        response = DataProcessor.check_duplicates(self.data_with_duplicates)
+        response = DataHandler.check_duplicates(self.data_with_duplicates)
 
         # validate
         self.assertTrue(response)
@@ -436,7 +445,7 @@ class TestDataProcessor(unittest.TestCase):
         )
 
         # Test
-        response = DataProcessor.check_duplicates(
+        response = DataHandler.check_duplicates(
             self.data_with_duplicates, subset=["dates"]
         )
 
@@ -452,7 +461,7 @@ class TestDataProcessor(unittest.TestCase):
         )
 
         # test
-        response = DataProcessor.check_duplicates(self.data_without_duplicates)
+        response = DataHandler.check_duplicates(self.data_without_duplicates)
 
         # validate
         self.assertFalse(response)
@@ -461,7 +470,7 @@ class TestDataProcessor(unittest.TestCase):
         self.data_with_duplicates = pd.Series([1, 2, 2, 3])
 
         # Test
-        response = DataProcessor.check_duplicates(self.data_with_duplicates)
+        response = DataHandler.check_duplicates(self.data_with_duplicates)
 
         # validate
         self.assertTrue(response)
@@ -470,7 +479,7 @@ class TestDataProcessor(unittest.TestCase):
         self.data_without_duplicates = pd.Series([1, 2, 3])
 
         # test
-        response = DataProcessor.check_duplicates(self.data_without_duplicates)
+        response = DataHandler.check_duplicates(self.data_without_duplicates)
 
         # validate
         self.assertFalse(response)
@@ -489,7 +498,7 @@ class TestDataProcessor(unittest.TestCase):
         )
 
         # Test
-        response = DataProcessor.handle_duplicates(data_with_duplicates)
+        response = DataHandler.handle_duplicates(data_with_duplicates)
 
         # Validate
         assert_frame_equal(response, expected, check_dtype=True)
@@ -508,7 +517,7 @@ class TestDataProcessor(unittest.TestCase):
         )
 
         # test
-        response = DataProcessor.handle_duplicates(
+        response = DataHandler.handle_duplicates(
             data_with_duplicates, subset=["dates"]
         )
 
@@ -524,7 +533,7 @@ class TestDataProcessor(unittest.TestCase):
         )
 
         # test
-        response = DataProcessor.handle_duplicates(data_without_duplicates)
+        response = DataHandler.handle_duplicates(data_without_duplicates)
 
         # validate
         assert_frame_equal(response, data_without_duplicates, check_dtype=True)
@@ -536,7 +545,7 @@ class TestDataProcessor(unittest.TestCase):
         expected = pd.Series([1, 2, 3])
 
         # test
-        response = DataProcessor.handle_duplicates(data)
+        response = DataHandler.handle_duplicates(data)
 
         # Validation
         self.assertEqual(list(response), list(expected))
@@ -558,7 +567,7 @@ class TestDataProcessor(unittest.TestCase):
         )
 
         # test
-        df_outliers_iqr = DataProcessor.check_outliers(df, method="IQR")
+        df_outliers_iqr = DataHandler.check_outliers(df, method="IQR")
 
         # validate
         assert_frame_equal(expected, df_outliers_iqr, check_dtype=True)
@@ -570,7 +579,7 @@ class TestDataProcessor(unittest.TestCase):
         expected = pd.Series([False, False, False, True, False, False, False])
 
         # test
-        series_outliers_zscore = DataProcessor.check_outliers(
+        series_outliers_zscore = DataHandler.check_outliers(
             series, method="Z-score", threshold=2
         )
 
@@ -591,7 +600,7 @@ class TestDataProcessor(unittest.TestCase):
         )
 
         # test
-        df_normalized = DataProcessor.normalize(df)
+        df_normalized = DataHandler.normalize(df)
 
         # validate
         assert_frame_equal(expected, df_normalized)
@@ -624,7 +633,7 @@ class TestDataProcessor(unittest.TestCase):
         )
 
         # test
-        df_normalized = DataProcessor.normalize(df, "global")
+        df_normalized = DataHandler.normalize(df, "global")
 
         # validate
         assert_frame_equal(expected, df_normalized)
@@ -636,7 +645,7 @@ class TestDataProcessor(unittest.TestCase):
         expected = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
 
         # test
-        series_normalized = DataProcessor.normalize(series)
+        series_normalized = DataHandler.normalize(series)
 
         # validate
         self.assertEqual(list(series_normalized), list(expected))
@@ -669,7 +678,7 @@ class TestDataProcessor(unittest.TestCase):
         )
 
         # test
-        df_standardized = DataProcessor.standardize(df)
+        df_standardized = DataHandler.standardize(df)
 
         # validate
         assert_frame_equal(expected, df_standardized)
@@ -702,7 +711,7 @@ class TestDataProcessor(unittest.TestCase):
         )
 
         # test
-        df_standardized = DataProcessor.standardize(df, "global")
+        df_standardized = DataHandler.standardize(df, "global")
 
         # validate
         assert_frame_equal(expected, df_standardized)
@@ -721,7 +730,7 @@ class TestDataProcessor(unittest.TestCase):
         ]
 
         # test
-        series_standardized = DataProcessor.standardize(series)
+        series_standardized = DataHandler.standardize(series)
 
         # validate
         self.assertEqual(list(series_standardized), list(expected))
@@ -729,7 +738,7 @@ class TestDataProcessor(unittest.TestCase):
     def test_sample_data_df(self):
         df = pd.DataFrame({"A": range(100), "B": range(100, 200)})
         # test
-        df_sampled = DataProcessor.sample_data(df, frac=0.1, random_state=1)
+        df_sampled = DataHandler.sample_data(df, frac=0.1, random_state=1)
 
         # validate
         self.assertEqual(len(df_sampled), len(df) * 0.1)
@@ -738,7 +747,7 @@ class TestDataProcessor(unittest.TestCase):
         series = pd.Series(range(100))
 
         # test
-        series_sampled = DataProcessor.sample_data(
+        series_sampled = DataHandler.sample_data(
             series, frac=0.1, random_state=1
         )
 
@@ -759,7 +768,7 @@ class TestDataProcessor(unittest.TestCase):
         )
 
         # test
-        df_outliers = DataProcessor.handle_outliers(
+        df_outliers = DataHandler.handle_outliers(
             df, method="IQR", action="remove"
         )
 
@@ -773,84 +782,129 @@ class TestDataProcessor(unittest.TestCase):
         expected = pd.Series([10, 12, 14, 16, 18, 20])
 
         # test
-        series_outliers = DataProcessor.handle_outliers(
+        series_outliers = DataHandler.handle_outliers(
             series, method="Z-score", factor=2, action="remove"
         )
 
         # validate
         self.assertEqual(list(series_outliers), list(expected))
 
+    def test_split_data_default_ratio(self):
+        train, test = DataHandler.split_data(self.sample_dataframe)
+        # Default split ratio is 0.8
+        expected_train_length = int(len(self.sample_dataframe) * 0.8)
+        expected_test_length = (
+            len(self.sample_dataframe) - expected_train_length
+        )
+        self.assertEqual(len(train), expected_train_length)
+        self.assertEqual(len(test), expected_test_length)
+
+    def test_lag_series_default(self):
+        # Test with the default lag of 1
+        lagged_series = DataHandler.lag_series(self.sample_series).reset_index(
+            drop=True
+        )
+        expected_series = self.sample_series[:-1].reset_index(drop=True)
+        self.assertTrue((lagged_series.values == expected_series.values).all())
+
+    def test_lag_series_custom_lag(self):
+        # Test with a custom lag of 5
+        lag = 5
+        lagged_series = DataHandler.lag_series(self.sample_series, lag=lag)
+        self.assertEqual(len(lagged_series), len(self.sample_series) - lag)
+        self.assertTrue(
+            (lagged_series.values == self.sample_series[:-lag].values).all()
+        )
+
+    def test_split_data_custom_ratio(self):
+        custom_ratio = 0.7
+        train, test = DataHandler.split_data(
+            self.sample_dataframe, train_ratio=custom_ratio
+        )
+        expected_train_length = int(len(self.sample_dataframe) * custom_ratio)
+        expected_test_length = (
+            len(self.sample_dataframe) - expected_train_length
+        )
+        self.assertEqual(len(train), expected_train_length)
+        self.assertEqual(len(test), expected_test_length)
+
+    def test_split_data_data_integrity(self):
+        train, test = DataHandler.split_data(self.sample_dataframe)
+        # Check if concatenated train and test sets equal the original data
+        pd.testing.assert_frame_equal(
+            pd.concat([train, test]).reset_index(drop=True),
+            self.sample_dataframe,
+        )
+
     # Type Check
     def test_check_null_type_error(self):
         with self.assertRaises(Exception):
-            DataProcessor.check_null([1, 2, 3, 4])
+            DataHandler.check_null([1, 2, 3, 4])
 
     def test_handle_null_series_type_error(self):
         with self.assertRaises(TypeError):
-            DataProcessor.align_timestamps(
+            DataHandler.align_timestamps(
                 [1, 2, 2, 3], missing_values_strategy="fill_forward"
             )
 
     def test_check_duplicates_type_error(self):
         with self.assertRaises(TypeError):
-            DataProcessor.check_duplicates([123456, 3567])
+            DataHandler.check_duplicates([123456, 3567])
 
     def test_handle_duplicates_type_error(self):
         with self.assertRaises(TypeError):
-            DataProcessor.handle_duplicates([123456, 3567])
+            DataHandler.handle_duplicates([123456, 3567])
 
     def test_check_outliers_type_error(self):
         with self.assertRaises(TypeError):
-            DataProcessor.check_outliers(
+            DataHandler.check_outliers(
                 [123456, 3567], method="Z-score", threshold=2
             )
 
     def test_normalize_type_error(self):
         with self.assertRaises(TypeError):
-            DataProcessor.normalize("123456")
+            DataHandler.normalize("123456")
 
     def test_standardize_type_error(self):
         with self.assertRaises(TypeError):
-            DataProcessor.standardize("123456")
+            DataHandler.standardize("123456")
 
     def test_sample_data_type_error(self):
         with self.assertRaises(TypeError):
-            DataProcessor.sample_data("series", frac=0.1, random_state=1)
+            DataHandler.sample_data("series", frac=0.1, random_state=1)
 
     def test_handle_outliers_type_error(self):
         with self.assertRaises(TypeError):
-            DataProcessor.handle_outliers(
+            DataHandler.handle_outliers(
                 [10, 12, 14, 16, 18, 20], method="IQR", factor=2, action="drop"
             )
 
     # Value check
     def test_handle_null_series_value_error(self):
         with self.assertRaises(ValueError):
-            result = DataProcessor.align_timestamps(
+            DataHandler.align_timestamps(
                 pd.Series([1, 2, 2, 3]), missing_values_strategy="error"
             )
 
-    def test_check_outliers_type_error(self):
+    def test_check_outliers_value_error(self):
         with self.assertRaises(ValueError):
-            DataProcessor.check_outliers(
+            DataHandler.check_outliers(
                 pd.Series([123456, 3567]), method="sdfgh", threshold=2
             )
 
     def test_normalize_value_error(self):
         with self.assertRaises(ValueError):
-            DataProcessor.normalize(
-                pd.Series([10, 12, 14, 16, 18, 20]), "error"
-            )
+            DataHandler.normalize(pd.Series([10, 12, 14, 16, 18, 20]), "error")
 
     def test_standardize_value_error(self):
         with self.assertRaises(ValueError):
-            DataProcessor.standardize(
+            DataHandler.standardize(
                 pd.Series([10, 12, 14, 16, 18, 20]), "error"
             )
 
     def test_handle_outliers_value_error(self):
         with self.assertRaises(ValueError):
-            DataProcessor.handle_outliers(
+            DataHandler.handle_outliers(
                 pd.Series([10, 12, 14, 16, 18, 20]),
                 method="1",
                 factor=2,
@@ -858,7 +912,7 @@ class TestDataProcessor(unittest.TestCase):
             )
 
         with self.assertRaises(ValueError):
-            DataProcessor.handle_outliers(
+            DataHandler.handle_outliers(
                 pd.Series([10, 12, 14, 16, 18, 20]),
                 method="IQR",
                 factor=2,
@@ -868,7 +922,7 @@ class TestDataProcessor(unittest.TestCase):
     # Edge Cases
     def test_check_null_type_empty(self):
         # test
-        response = DataProcessor.check_null(pd.Series([]))
+        response = DataHandler.check_null(pd.Series([]))
 
         # validate
         self.assertFalse(response)
@@ -1015,7 +1069,7 @@ class TestDataProcessor(unittest.TestCase):
         # Test
         df = pd.DataFrame(response_missing_data)
         df.drop(columns=["id"], inplace=True)
-        result = DataProcessor.align_timestamps(
+        result = DataHandler.align_timestamps(
             data=df, missing_values_strategy="fill_forward"
         )
 

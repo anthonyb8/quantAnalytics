@@ -1,13 +1,9 @@
 import numpy as np
 import pandas as pd
-from quantAnalytics.regression import RegressionAnalysis
-from quantAnalytics.performance import PerformanceStatistics
+from quantAnalytics.regression.regression import RegressionAnalysis
+from quantAnalytics.backtest.metrics import Metrics
 import yfinance as yf
 from quantAnalytics.utils import unix_to_iso
-
-# from mbn import BufferStore
-
-# import midasClient
 
 
 def main():
@@ -45,9 +41,7 @@ def main():
 
     # Returns
     benchmark_close = pd.to_numeric(benchmark_df["Close"])
-    daily_returns = PerformanceStatistics.simple_returns(
-        benchmark_close.values
-    )
+    daily_returns = Metrics.simple_returns(benchmark_close.values)
     benchmark_df["bm_period_return"] = np.insert(daily_returns, 0, 0)
 
     # Align Data

@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from quantAnalytics.statistics import Result
+from quantAnalytics.result import Result
 
 
 class AnnualizedVolZScore(Result):
@@ -28,7 +28,164 @@ class AnnualizedVolZScore(Result):
         return pd.DataFrame(data)
 
 
-class RiskAnalysis:
+class Metrics:
+    @staticmethod
+    def simple_returns(prices: np.ndarray, decimals: int = 6) -> np.ndarray:
+        """
+        Calculate simple returns from an array of prices.
+
+        Parameters:
+        - prices (np.ndarray): A 1D array of prices.
+        - decimals (int): Decimal rounding on return values. Defaults to 6.
+
+        Returns:
+        - np.ndarray: A 1D array of simple returns.
+        """
+        if not isinstance(prices, np.ndarray):
+            raise TypeError(
+                f"'prices' must be of type np.ndarray. Recieved type : {type(prices)}"
+            )
+        try:
+            returns = (prices[1:] - prices[:-1]) / prices[:-1]
+            return np.around(returns, decimals=decimals)
+        except Exception as e:
+            raise Exception(f"Error calculating simple returns {e}")
+
+    @staticmethod
+    def log_returns(prices: np.ndarray, decimals: int = 6) -> np.ndarray:
+        """
+        Calculate logarithmic returns from an array of prices.
+
+        Parameters:
+        - prices (np.ndarray): A 1D array of prices.
+        - decimals (int): Decimal rounding on return values. Defaults to 6.
+
+        Returns:
+        - np.ndarray: A 1D array of logarithmic returns.
+        """
+        if not isinstance(prices, np.ndarray):
+            raise TypeError(
+                f"'prices' must be of type np.ndarray. Recieved type : {type(prices)}"
+            )
+
+        try:
+            returns = np.log(prices[1:] / prices[:-1])
+            return np.around(returns, decimals=decimals)
+        except Exception as e:
+            raise Exception(f"Error calculating log returns {e}")
+
+    @staticmethod
+    def cumulative_returns(
+        equity_curve: np.ndarray,
+        decimals: int = 6,
+    ) -> np.ndarray:
+        """
+        Calculate cumulative returns from an equity curve.
+
+        Parameters:
+        - equity_curve (np.ndarray): A 1D array of equity values.
+        - decimals (int): Decimal rounding on return values. Defaults to 6.
+
+        Returns:
+        - np.ndarray: A 1D array of cumulative returns.
+        """
+        if not isinstance(equity_curve, np.ndarray):
+            raise TypeError("equity_curve must be a numpy array")
+
+        if len(equity_curve) == 0:
+            return np.array([0])
+
+        try:
+            period_returns = (
+                equity_curve[1:] - equity_curve[:-1]
+            ) / equity_curve[:-1]
+            cumulative_returns = np.cumprod(1 + period_returns) - 1
+            return np.around(cumulative_returns, decimals=decimals)
+        except Exception as e:
+            raise Exception(f"Error calculating cumulative returns: {e}")
+
+    @staticmethod
+    def total_return(equity_curve: np.ndarray, decimals: int = 6) -> float:
+        """
+        Calculate the total return from an equity curve.
+
+        Parameters:
+        - equity_curve (np.ndarray): A 1D array of equity values.
+        - decimals (int): Decimal rounding on return values. Defaults to 6.
+
+        Returns:
+        - float: The total return as a decimal.
+        """
+
+        if not isinstance(equity_curve, np.ndarray):
+            raise TypeError("equity_curve must be a numpy array")
+
+        if len(equity_curve) == 0:
+            return np.array([0])
+        try:
+            return (
+                Metrics.cumulative_returns(equity_curve, decimals)[-1]
+                if len(equity_curve) > 0
+                else 0.0
+            )
+        except Exception as e:
+            raise Exception(f"Error calculating total return: {e}")
+
+    @staticmethod
+    def annualize_returns(
+        returns: np.ndarray,
+        periods_per_year: int = 252,
+        decimals: int = 6,
+    ) -> float:
+        """
+        Annualize returns.
+
+        Parameters:
+        - returns (np.ndarray): A 1D array of returns.
+        - periods_per_year (int): The number of periods per year. Default is 252.
+        - decimals (int): Decimal rounding on return values. Defaults to 6.
+
+        Returns:
+        - float: The annualized return.
+        """
+        if not isinstance(returns, np.ndarray):
+            raise TypeError("'returns' must be a numpy.ndarray")
+
+        try:
+            compounded_growth = (1 + returns).prod()
+            n_periods = returns.shape[0]
+            return round(
+                compounded_growth ** (periods_per_year / n_periods) - 1,
+                decimals,
+            )
+        except Exception as e:
+            raise Exception(f"Error calculating annualized returns {e}")
+
+    @staticmethod
+    def net_profit(equity_curve: np.ndarray, decimals: int = 6) -> float:
+        """
+        Calculate the net profit from an equity curve NumPy array.
+
+        This method calculates the net profit by taking the difference between the
+        first and the last element of the equity curve array.
+
+        Parameters:
+        - equity_curve (np.ndarray): The equity curve array. It should contain the equity values over time.
+        - decimals (int): Decimal rounding on return values. Defaults to 6.
+
+        Returns:
+        - float: The net profit, rounded to four decimal places.
+        """
+
+        # Ensure the equity curve is not empty
+        if equity_curve.size == 0:
+            return 0.0
+
+        # Calculate the difference between the last and first item
+        net_profit = equity_curve[-1] - equity_curve[0]
+
+        return round(net_profit, decimals)
+
     @staticmethod
     def drawdown(returns: np.ndarray, decimals: int = 6) -> np.ndarray:
         """
@@ -87,7 +244,7 @@ class RiskAnalysis:
             return np.array([0])
 
         try:
-            drawdowns = RiskAnalysis.drawdown(returns, decimals)
+            drawdowns = Metrics.drawdown(returns, decimals)
             max_drawdown = np.min(drawdowns)  # Find the maximum drawdown
             return max_drawdown
         except Exception as e:
@@ -122,7 +279,8 @@ class RiskAnalysis:
 
     @staticmethod
     def annual_standard_deviation(
-        returns: np.ndarray, decimals: int = 6
+        returns: np.ndarray,
+        decimals: int = 6,
     ) -> float:
         """
         Calculate the annualized standard deviation of returns.
@@ -159,7 +317,9 @@ class RiskAnalysis:
 
     @staticmethod
     def sharpe_ratio(
-        returns: np.ndarray, risk_free_rate: float = 0.04, decimals: int = 6
+        returns: np.ndarray,
+        risk_free_rate: float = 0.04,
+        decimals: int = 6,
     ) -> float:
         """
         Calculate the Sharpe ratio of the strategy.
@@ -207,7 +367,9 @@ class RiskAnalysis:
 
     @staticmethod
     def sortino_ratio(
-        returns: np.ndarray, risk_free_rate: float = 0.04, decimals: int = 6
+        returns: np.ndarray,
+        risk_free_rate: float = 0.04,
+        decimals: int = 6,
     ) -> float:
         """
         Calculate the Sortino Ratio for a given returns array.
@@ -254,7 +416,8 @@ class RiskAnalysis:
 
     @staticmethod
     def value_at_risk(
-        returns: np.ndarray, confidence_level: float = 0.05
+        returns: np.ndarray,
+        confidence_level: float = 0.05,
     ) -> float:
         """
         Calculate the Value at Risk (VaR) at a specified confidence level using historical returns.
@@ -279,7 +442,8 @@ class RiskAnalysis:
 
     @staticmethod
     def conditional_value_at_risk(
-        returns: np.ndarray, confidence_level: float = 0.05
+        returns: np.ndarray,
+        confidence_level: float = 0.05,
     ) -> float:
         """
         Calculate the Conditional Value at Risk (CVaR) at a specified confidence level using historical returns.
@@ -299,7 +463,7 @@ class RiskAnalysis:
         if len(returns) == 0:
             return np.nan
 
-        var = RiskAnalysis.value_at_risk(returns, confidence_level)
+        var = Metrics.value_at_risk(returns, confidence_level)
         tail_losses = returns[returns <= var]
         cvar = tail_losses.mean()
         return cvar

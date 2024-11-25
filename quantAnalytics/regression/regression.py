@@ -3,30 +3,13 @@ import pandas as pd
 import statsmodels.api as sm
 from sklearn.metrics import mean_absolute_error
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-from quantAnalytics.statistics import Result
-from quantAnalytics.report import ReportBuilder, Header
-from quantAnalytics.visualization import Visualization
 from sklearn.model_selection import KFold
 from sklearn.metrics import root_mean_squared_error
 
-
-class RegressionResult(Result):
-    def __init__(self, data: dict):
-        super().__init__("Regression Analysis", "", data)
-        self.footer = "** R-squared should be above the threshold and p-values should be below the threshold for model validity."
-
-    def _to_dataframe(self) -> pd.DataFrame:
-        # Flatten results
-        flattened_data = {}
-        for section, metrics in self.data.items():
-            for metric, values in metrics.items():
-                flattened_data[f"{metric}"] = values
-
-        # Convert the flattened dictionary to a DataFrame
-        df = pd.DataFrame(flattened_data).T
-        df = df.reset_index()
-        df.columns = ["Field", "Value", "Significant"]
-        return df
+from quantAnalytics.statistics.results import Result
+from quantAnalytics.report.report import ReportBuilder, Header
+from quantAnalytics.analysis.plots import Plot
+from .result import RegressionResult
 
 
 class RegressionAnalysis:
@@ -113,18 +96,16 @@ class RegressionAnalysis:
             fitted_plot_path = (
                 f"{self.output_dir}/residuals_v_fitted_{fold}.png"
             )
-            Visualization.plot_residuals_vs_fitted(
+            Plot.plot_residuals_vs_fitted(
                 residuals=residuals,
                 fittedvalues=self.model.fittedvalues,
                 save_path=fitted_plot_path,
             )
             qq_plot = f"{self.output_dir}/qq_plot_{fold}.png"
-            Visualization.qq_plot(residuals, save_path=qq_plot)
+            Plot.qq_plot(residuals, save_path=qq_plot)
 
             influence_plot = f"{self.output_dir}/influence_plot_{fold}.png"
-            Visualization.plot_influence_measures(
-                cooks_dist, save_path=influence_plot
-            )
+            Plot.plot_influence_measures(cooks_dist, save_path=influence_plot)
 
             # Combine all reports
             self.report.add_header(f"Fold: {fold}", Header.H3)
