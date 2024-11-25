@@ -1,59 +1,220 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 import numpy as np
 import seaborn as sns
 from scipy.stats import norm
 import statsmodels.api as sm
+import matplotlib.dates as mdates
+from typing import Callable
 
 
 class Plot:
     @staticmethod
-    def line_plot(
-        x: pd.Series,
-        y: pd.Series,
-        title: str = "Line Plot",
-        x_label: str = "X-axis",
-        y_label: str = "Y-axis",
-        line_style: str = "-",
-        marker: str = "o",
-        color: str = "b",
+    def plot_line(
+        data: pd.Series,
+        title="Line Plot",
+        xlabel="Date",
+        ylabel="Value",
+        xtick_interval=None,
+        hline=False,
+        save_path=None,
+    ) -> plt.Figure:
+        """
+        Plots a line graph from a pandas Series.
+
+        Parameters:
+            data (pd.Series): The data to plot. The index is used as the x-axis, and values as the y-axis.
+            title (str): Title of the plot.
+            xlabel (str): Label for the x-axis.
+            ylabel (str): Label for the y-axis.
+            xtick_interval (int): Interval for x-axis ticks (optional).
+            save_path (str): Path to save the plot. If None, the plot is returned.
+
+        Returns:
+            plt.Figure: The created matplotlib figure.
+        """
+        # Check if input is a pandas Series
+        if not isinstance(data, pd.Series):
+            raise ValueError("The data parameter must be a pandas Series.")
+
+        # Extract x (index) and y (values) from the Series
+        x = data.index
+        y = data.values
+
+        # Create the plot
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.plot(
+            x, y, alpha=0.8, label=data.name or "Data"
+        )  # Use the Series name if available
+        ax.set_title(title)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.grid(alpha=0.3)
+
+        # Customize x-axis ticks for datetime data
+        if isinstance(x, pd.DatetimeIndex):
+            ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+            fig.autofmt_xdate()  # Rotate and format x-axis labels
+
+        # Add legend
+        ax.legend()
+
+        if hline:
+            ax.axhline(y=0, color="red", linestyle="--")
+
+        # Save or return the figure
+        if save_path:
+            fig.savefig(save_path)
+            plt.close(fig)  # Close the figure to avoid display
+        else:
+            return fig
+
+    @staticmethod
+    def plot_multiline(
+        data: pd.DataFrame,
+        title: str = "Multiline Plot",
+        xlabel: str = "Date",
+        ylabel: str = "Value",
+        xtick_interval: int = 300,
         grid: bool = True,
         layout_tight: bool = True,
         save_path: str = None,
-    ) -> Figure:
+    ) -> plt.Figure:
         """
-        Create a line plot for the given x and y data.
+        Plots a multiline graph where each line represents a column in the DataFrame.
 
         Parameters:
-        - x (pd.Series): The x-axis data.
-        - y (pd.Series): The y-axis data.
-        - title (str): Title of the plot.
-        - x_label (str): Label for the x-axis.
-        - y_label (str): Label for the y-axis.
-        - line_style (str): Style of the plot line.
-        - marker (str): Marker type for plot points.
-        - color (str): Color of the plot line.
-        - grid (bool): Whether to display grid lines.
-        - layout_tight (bool): Whether to use tight layout.
+            data (pd.DataFrame): The DataFrame containing the data to plot. Columns are plotted as separate lines.
+            title (str): Title of the plot.
+            xlabel (str): Label for the x-axis.
+            ylabel (str): Label for the y-axis.
+            xtick_interval (int): Interval between x-axis ticks.
+            grid (bool): Whether to include a grid on the plot.
+            layout_tight (bool): Whether to use tight layout to prevent overlap.
+            save_path (str): Path to save the plot. If None, the plot will be returned.
 
         Returns:
-        - plt.Figure: The line plot.
-
-        Example:
-        >>> Plots.line_plot(x, y, title='Test Line Plot', x_label='Index', y_label='Value', color='red')
-        >>> plt.show()
+            plt.Figure: The created matplotlib figure.
         """
+        # Create the figure and axes
         fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(x, y, linestyle=line_style, marker=marker, color=color)
+
+        # Plot each column as a line
+        for column in data.columns:
+            ax.plot(data.index, data[column], label=column, alpha=0.8)
+
+        # Add titles and labels
         ax.set_title(title)
-        ax.set_xlabel(x_label)
-        ax.set_ylabel(y_label)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.legend(title="Columns")
+
+        # Enable grid if specified
         if grid:
-            ax.grid(True)
+            ax.grid(alpha=0.3)
+
+        # Customize x-axis ticks for datetime data
+        if isinstance(data.index, pd.DatetimeIndex):
+            ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+            fig.autofmt_xdate()  # Rotate and format x-axis labels
+
+        # Use tight layout if specified
         if layout_tight:
             plt.tight_layout()
+
+        # Save or return the plot
+        if save_path:
+            fig.savefig(save_path)
+            plt.close(fig)  # Close the figure to avoid display
+        else:
+            return fig
+
+    @staticmethod
+    def plot_scatter(
+        x: Union[np.ndarray, pd.Series, list],
+        y: Union[np.ndarray, pd.Series, list],
+        title: str = "Scatter Plot",
+        xlabel: str = "X-axis",
+        ylabel: str = "Y-axis",
+        alpha: float = 0.5,
+        color: str = "blue",
+        marker: str = "o",
+        grid: bool = True,
+        hline: float = 0,  # Add a horizontal line at this value if not None
+        hline_color: str = "red",
+        hline_style: str = "--",
+        save_path: str = None,
+    ) -> plt.Figure:
+        """
+        Creates a scatter plot with optional customization.
+
+        Parameters:
+            x (array-like): Values for the x-axis.
+            y (array-like): Values for the y-axis.
+            title (str): Title of the plot.
+            xlabel (str): Label for the x-axis.
+            ylabel (str): Label for the y-axis.
+            alpha (float): Transparency level for scatter points.
+            color (str): Color of the scatter points.
+            marker (str): Marker style for the scatter points.
+            grid (bool): Whether to display a grid.
+            hline (float): Optional horizontal line value. If None, no line is drawn.
+            hline_color (str): Color of the horizontal line.
+            hline_style (str): Style of the horizontal line.
+            save_path (str): Path to save the plot. If None, the figure is returned.
+
+        Returns:
+            plt.Figure: The created matplotlib figure.
+        """
+        # Create the plot
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.scatter(x, y, alpha=alpha, color=color, marker=marker)
+
+        # Add horizontal line if specified
+        if hline is not None:
+            ax.axhline(y=hline, color=hline_color, linestyle=hline_style)
+
+        # Add titles and labels
+        ax.set_title(title)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+
+        # Add grid if specified
+        if grid:
+            ax.grid(alpha=0.3)
+
+        # Save or return the plot
+        if save_path:
+            fig.savefig(save_path)
+            plt.close(fig)  # Close the figure to avoid display
+        else:
+            return fig
+
+    @staticmethod
+    def correlation_heatmap(
+        df: pd.DataFrame,
+        title: str,
+        save_path: str = None,
+    ) -> plt.Figure:
+
+        correlation_matrix = df.corr()
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.heatmap(
+            correlation_matrix,
+            annot=True,
+            cmap="coolwarm",
+            vmin=-1,
+            vmax=1,
+        )
+
+        plt.title(title)
+
+        # Adjust layout to minimize white space
+        plt.tight_layout()
 
         if save_path:
             fig.savefig(save_path)
@@ -62,100 +223,278 @@ class Plot:
             return fig
 
     @staticmethod
-    def multi_line_plot(
-        data: Dict[str, pd.DataFrame],
-        title: str = "Multi-Line Plot",
-        x_label: str = "X-axis",
-        y_label: str = "Y-axis",
-        line_styles: Optional[Dict[str, str]] = None,
-        colors: Optional[Dict[str, str]] = None,
-        grid: bool = True,
-        rotate_xticks: bool = False,
-        layout_tight: bool = True,
+    def plot_information_criteria(
+        model_fit_function: Callable[[int], sm.tsa.VAR],
+        maxlags: int = 12,
+        title: str = "Lag Order Selection",
         save_path: str = None,
-    ) -> Figure:
+    ) -> plt.Figure:
         """
-        Plot multiple data series from a dictionary of DataFrames.
+        Plots the AIC, BIC, and HQIC information criteria for selecting the optimal lag order.
 
         Parameters:
-        - data (dict): Dictionary where keys are series labels and values are DataFrames with data to plot.
-        - title (str): Title of the plot.
-        - x_label (str): Label for the x-axis.
-        - y_label (str): Label for the y-axis.
-        - line_styles (dict): Optional. Dictionary mapping series labels to line styles.
-        - colors (dict): Optional. Dictionary mapping series labels to colors.
-        - grid (bool): Whether to display grid lines.
-        - rotate_xticks (bool): Whether to rotate x-axis labels for better readability.
-        - layout_tight (bool): Whether to use tight layout.
+            model_fit_function (Callable[[int], VAR]): A function that takes lag order as input and returns a fitted VAR model.
+            maxlags (int): Maximum number of lags to evaluate.
+            title (str): Title of the plot.
+            save_path (str): Path to save the plot. If None, the figure is returned.
 
         Returns:
-        - plt.Figure: The figure object containing the plots.
+            plt.Figure: The created matplotlib figure.
+        """
+        # Initialize lists to store the information criteria values
+        lags = range(1, maxlags + 1)
+        aic, bic, hqic = [], [], []
+
+        # Calculate the information criteria for each lag order
+        for lag in lags:
+            model = model_fit_function(lag)
+            aic.append(model.aic)
+            bic.append(model.bic)
+            hqic.append(model.hqic)
+
+        # Create the plot
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(lags, aic, marker="o", label="AIC")
+        ax.plot(lags, bic, marker="o", label="BIC")
+        ax.plot(lags, hqic, marker="o", label="HQIC")
+
+        # Add titles and labels
+        ax.set_title(title)
+        ax.set_xlabel("Lag Order")
+        ax.set_ylabel("Criterion Value")
+        ax.legend()
+        ax.grid(alpha=0.3)
+
+        # Save or return the figure
+        if save_path:
+            fig.savefig(save_path)
+            plt.close(fig)  # Close the figure to avoid rendering
+        else:
+            return fig
+
+    @staticmethod
+    def plot_acf(residuals: pd.Series, lags: int = 12) -> plt.Figure:
+        """
+        Plot the ACF and PACF of residuals.
+
+        Parameters:
+        - residuals (pd.Series): Residuals of a time series model.
+        - lags (int): Number of lags for ACF and PACF plots.
+
+        Returns:
+          -  plt.Figure: Figure representing the plot.
 
         Example:
-        >>> data = {
-                "Series 1": pd.DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}),
-                "Series 2": pd.DataFrame({"A": [1, 1, 1], "B": [3, 2, 1]})
-            }
-        # Custom styles
-        >>> line_styles = {
-                "Series 1": "--",
-                "Series 2": ":"
-            }
-
-        >>> colors = {
-                "Series 1": "blue",
-                "Series 2": "red"
-            }
-        >>> Plots.multi_line_plot(data, title="Example Plot")
+        >>> TimeseriesTests.plot_acf_pacf(residuals, lags)
         >>> plt.show()
         """
-        # Create the figure and axis
-        fig, ax = plt.subplots(figsize=(12, 6))
+        fig, ax = plt.subplots()
 
-        # Plot each series
-        for label, df in data.items():
-            if line_styles and label in line_styles:
-                line_style = line_styles[label]
-            else:
-                line_style = "-"  # Default to solid line
+        # Plot ACF
+        sm.graphics.tsa.plot_acf(residuals, lags=lags, ax=ax)
+        ax.set_title("ACF of Residuals")
 
-            if colors and label in colors:
-                color = colors[label]
-            else:
-                color = None  # Let matplotlib auto-assign colors
+        # Adjust layout
+        fig.tight_layout()
 
-            for column in df.columns:
-                ax.plot(
-                    df.index,
-                    df[column],
-                    label=f"{label} {column}",
-                    linestyle=line_style,
-                    color=color,
-                )
+        # Return the figure object
+        return fig
 
-        # Add labels, title, and grid
-        ax.set_xlabel(x_label)
-        ax.set_ylabel(y_label)
-        ax.set_title(title)
-        if grid:
-            ax.grid(True)
+    @staticmethod
+    def plot_dual_axis(
+        primary_data: pd.Series,
+        secondary_data: pd.Series,
+        title: str = "Dual Axis Plot",
+        primary_label: str = "Primary",
+        secondary_label: str = "Secondary",
+        primary_color: str = "blue",
+        secondary_color: str = "red",
+        xlabel: str = "Time",
+        save_path: str = None,
+    ) -> plt.Figure:
+        """
+        Plots a dual-axis chart with two different datasets on separate y-axes.
+
+        Parameters:
+            primary_data (pd.Series): Data for the primary y-axis.
+            secondary_data (pd.Series): Data for the secondary y-axis.
+            title (str): Title of the plot.
+            primary_label (str): Label for the primary y-axis data.
+            secondary_label (str): Label for the secondary y-axis data.
+            primary_color (str): Color for the primary y-axis line and labels.
+            secondary_color (str): Color for the secondary y-axis line and labels.
+            xlabel (str): Label for the x-axis.
+            save_path (str): Path to save the plot. If None, the figure is returned.
+
+        Returns:
+            plt.Figure: The created matplotlib figure.
+        """
+        if not isinstance(primary_data, pd.Series) or not isinstance(
+            secondary_data, pd.Series
+        ):
+            raise ValueError(
+                "Both primary_data and secondary_data must be pandas Series."
+            )
+
+        # Create the plot
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+
+        # Plot the primary data
+        ax1.plot(
+            primary_data.index,
+            primary_data,
+            label=primary_label,
+            color=primary_color,
+            alpha=0.7,
+        )
+        ax1.set_xlabel(xlabel, fontsize=12)
+        ax1.set_ylabel(primary_label, fontsize=12, color=primary_color)
+        ax1.tick_params(axis="y", labelcolor=primary_color)
+        ax1.set_title(title, fontsize=14)
+
+        # Plot the secondary data on a secondary y-axis
+        ax2 = ax1.twinx()
+        ax2.plot(
+            secondary_data.index,
+            secondary_data,
+            label=secondary_label,
+            color=secondary_color,
+            alpha=0.7,
+        )
+        ax2.set_ylabel(secondary_label, fontsize=12, color=secondary_color)
+        ax2.tick_params(axis="y", labelcolor=secondary_color)
 
         # Add legend
-        ax.legend()
+        fig.legend(loc="upper left", bbox_to_anchor=(0.1, 0.9), fontsize=10)
 
-        # Rotate x-axis labels if necessary
-        if rotate_xticks:
-            plt.xticks(rotation=45)
+        # Save or return the plot
+        if save_path:
+            fig.savefig(save_path)
+            plt.close(fig)  # Close the figure to avoid rendering
+        else:
+            return fig
+
+    @staticmethod
+    def qq_plot(
+        residuals: pd.Series, title: str = "Q-Q Plot", save_path: str = None
+    ) -> plt.Figure:
+        """
+        Generate a Q-Q plot to analyze the normality of residuals in the regression model.
+
+        This method creates a Q-Q plot comparing the quantiles of the residuals to the quantiles of a normal distribution.
+        This helps in diagnosing deviations from normality such as skewness and kurtosis.
+        """
+
+        # Generate Q-Q plot
+        fig = plt.figure(figsize=(10, 6))
+        ax = fig.add_subplot(111)
+        sm.qqplot(residuals, line="45", ax=ax, fit=True)
+        ax.set_title(title)
+        ax.grid(True)
 
         # Adjust layout to minimize white space
-        if layout_tight:
-            plt.tight_layout()
+        plt.tight_layout()
 
         if save_path:
             fig.savefig(save_path)
             plt.close(fig)  # Close the figure to avoid display
         else:
             return fig
+
+    @staticmethod
+    def histogram_ndc(
+        data: pd.Series,
+        bins: str = "auto",
+        title: str = "Histogram with Normal Distribution Curve",
+        save_path: str = None,
+    ) -> plt.Figure:
+        """
+        Create a histogram for the given data and overlay a normal distribution fit.
+
+        Parameters:
+        - data (array-like): The dataset for which the histogram is to be created.
+        - bins (int or sequence or str): Specification of bin sizes. Default is 'auto'.
+        - title (str): Title of the plot.
+
+        Returns:
+        - plt.Figure: A histogram with a normal distribution fit.
+
+        Example:
+        >>> TimeseriesTests.histogram_ndc(data, bins='auto', title='Test Histogram with NDC')
+        >>> plt.show()
+
+        """
+        # Convert data to a numpy array if it's not already
+        data = np.asarray(data)
+
+        # Create figure and axis
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Generate histogram
+        sns.histplot(
+            data, bins=bins, kde=False, color="blue", stat="density", ax=ax
+        )
+
+        # Fit and overlay a normal distribution
+        mean, std = norm.fit(data)
+        xmin, xmax = ax.get_xlim()
+        x = np.linspace(xmin, xmax, 100)
+        p = norm.pdf(x, mean, std)
+        ax.plot(x, p, "k", linewidth=2)
+
+        title += f"\n Fit Results: Mean = {mean:.2f},  Std. Dev = {std:.2f}"
+        ax.set_title(title)
+        ax.set_xlabel("Value")
+        ax.set_ylabel("Density")
+
+        if save_path:
+            fig.savefig(save_path)
+            plt.close(fig)  # Close the figure to avoid display
+        else:
+            return fig
+
+    @staticmethod
+    def histogram_kde(
+        data: pd.Series,
+        bins: str = "auto",
+        title: str = "Histogram with Kernel Density Estimate (KDE)",
+        save_path: str = None,
+    ) -> plt.Figure:
+        """
+        Create a histogram for the given data to visually check for normal distribution.
+
+        Parameters:
+        - data (array-like): The dataset for which the histogram is to be created.
+        - bins (int or sequence or str): Specification of bin sizes. Default is 'auto'.
+        - title (str): Title of the plot.
+
+        Returns:
+        - plt.Figure: A histogram for assessing normality.
+
+        Example
+        >>> TimeseriesTests.histogram_kde(data, bins='auto', title='Test Histogram with KDE')
+        >>> plt.show()
+        """
+        # Convert data to a numpy array if it's not already
+        data = np.asarray(data)
+
+        # Create figure and axis
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Generate histogram with KDE
+        sns.histplot(data, bins=bins, kde=True, color="blue", ax=ax)
+
+        ax.set_title(title)
+        ax.set_xlabel("Value")
+        ax.set_ylabel("Frequency")
+
+        if save_path:
+            fig.savefig(save_path)
+            plt.close(fig)  # Close the figure to avoid display
+        else:
+            return fig
+
+    # == old ==
 
     @staticmethod
     def line_plot_with_markers(
@@ -643,126 +982,6 @@ class Plot:
             return fig
 
     @staticmethod
-    def histogram_ndc(
-        data: pd.Series,
-        bins: str = "auto",
-        title: str = "Histogram with Normal Distribution Curve",
-        save_path: str = None,
-    ) -> plt.Figure:
-        """
-        Create a histogram for the given data and overlay a normal distribution fit.
-
-        Parameters:
-        - data (array-like): The dataset for which the histogram is to be created.
-        - bins (int or sequence or str): Specification of bin sizes. Default is 'auto'.
-        - title (str): Title of the plot.
-
-        Returns:
-        - plt.Figure: A histogram with a normal distribution fit.
-
-        Example:
-        >>> TimeseriesTests.histogram_ndc(data, bins='auto', title='Test Histogram with NDC')
-        >>> plt.show()
-
-        """
-        # Convert data to a numpy array if it's not already
-        data = np.asarray(data)
-
-        # Create figure and axis
-        fig, ax = plt.subplots(figsize=(10, 6))
-
-        # Generate histogram
-        sns.histplot(
-            data, bins=bins, kde=False, color="blue", stat="density", ax=ax
-        )
-
-        # Fit and overlay a normal distribution
-        mean, std = norm.fit(data)
-        xmin, xmax = ax.get_xlim()
-        x = np.linspace(xmin, xmax, 100)
-        p = norm.pdf(x, mean, std)
-        ax.plot(x, p, "k", linewidth=2)
-
-        title += f"\n Fit Results: Mean = {mean:.2f},  Std. Dev = {std:.2f}"
-        ax.set_title(title)
-        ax.set_xlabel("Value")
-        ax.set_ylabel("Density")
-
-        if save_path:
-            fig.savefig(save_path)
-            plt.close(fig)  # Close the figure to avoid display
-        else:
-            return fig
-
-    @staticmethod
-    def histogram_kde(
-        data: pd.Series,
-        bins: str = "auto",
-        title: str = "Histogram with Kernel Density Estimate (KDE)",
-        save_path: str = None,
-    ) -> plt.Figure:
-        """
-        Create a histogram for the given data to visually check for normal distribution.
-
-        Parameters:
-        - data (array-like): The dataset for which the histogram is to be created.
-        - bins (int or sequence or str): Specification of bin sizes. Default is 'auto'.
-        - title (str): Title of the plot.
-
-        Returns:
-        - plt.Figure: A histogram for assessing normality.
-
-        Example
-        >>> TimeseriesTests.histogram_kde(data, bins='auto', title='Test Histogram with KDE')
-        >>> plt.show()
-        """
-        # Convert data to a numpy array if it's not already
-        data = np.asarray(data)
-
-        # Create figure and axis
-        fig, ax = plt.subplots(figsize=(10, 6))
-
-        # Generate histogram with KDE
-        sns.histplot(data, bins=bins, kde=True, color="blue", ax=ax)
-
-        ax.set_title(title)
-        ax.set_xlabel("Value")
-        ax.set_ylabel("Frequency")
-
-        if save_path:
-            fig.savefig(save_path)
-            plt.close(fig)  # Close the figure to avoid display
-        else:
-            return fig
-
-    @staticmethod
-    def qq_plot(
-        residuals: pd.Series, title: str = "Q-Q Plot", save_path: str = None
-    ) -> plt.Figure:
-        """
-        Generate a Q-Q plot to analyze the normality of residuals in the regression model.
-
-        This method creates a Q-Q plot comparing the quantiles of the residuals to the quantiles of a normal distribution.
-        This helps in diagnosing deviations from normality such as skewness and kurtosis.
-        """
-
-        # Generate Q-Q plot
-        fig = plt.figure(figsize=(10, 6))
-        ax = fig.add_subplot(111)
-        sm.qqplot(residuals, line="45", ax=ax, fit=True)
-        ax.set_title(title)
-        ax.grid(True)
-
-        # Adjust layout to minimize white space
-        plt.tight_layout()
-
-        if save_path:
-            fig.savefig(save_path)
-            plt.close(fig)  # Close the figure to avoid display
-        else:
-            return fig
-
-    @staticmethod
     def plot_residuals_vs_fitted(
         residuals: pd.Series,
         fittedvalues: pd.Series,
@@ -835,34 +1054,6 @@ class Plot:
         ax.set_title("Cook's Distance Plot")
         ax.set_xlabel("Observation Index")
         ax.set_ylabel("Cook's Distance")
-
-        # Adjust layout to minimize white space
-        plt.tight_layout()
-
-        if save_path:
-            fig.savefig(save_path)
-            plt.close(fig)  # Close the figure to avoid display
-        else:
-            return fig
-
-    @staticmethod
-    def correlation_heatmap(
-        df: pd.DataFrame,
-        title: str,
-        save_path: str = None,
-    ) -> plt.Figure:
-
-        correlation_matrix = df.corr()
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.heatmap(
-            correlation_matrix,
-            annot=True,
-            cmap="coolwarm",
-            vmin=-1,
-            vmax=1,
-        )
-
-        plt.title(title)
 
         # Adjust layout to minimize white space
         plt.tight_layout()

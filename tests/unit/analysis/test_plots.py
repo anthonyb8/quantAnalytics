@@ -24,18 +24,13 @@ class TestPlot(unittest.TestCase):
             {"timestamp": "2023-01-05", "price": 104, "direction": 1},
         ]
 
-    def test_line_plot(self):
-        # Create sample data
-        x = pd.Series(np.arange(0, 10))
-        y = pd.Series(np.random.random(10))
-
+    def test_plot_line(self):
         # Test
-        fig = Plot.line_plot(
-            x,
-            y,
+        fig = Plot.plot_line(
+            data=self.data["symbol1"],
             title="Test Line Plot",
-            x_label="Index",
-            y_label="Random Value",
+            xlabel="Index",
+            ylabel="Random Value",
         )
 
         # Show
@@ -45,31 +40,13 @@ class TestPlot(unittest.TestCase):
         self.assertIsInstance(fig, Figure)
         self.assertTrue(len(fig.axes[0].lines) > 0)
 
-    def test_multi_line_plot(self):
-        # Creating dummy data
-        data = {
-            "Series 1": pd.DataFrame(
-                {"A": [1, 2, 3], "B": [4, 5, 6]}, index=[1, 2, 3]
-            ),
-            "Series 2": pd.DataFrame(
-                {"A": [1, 1, 2], "B": [6, 5, 4]}, index=[1, 2, 3]
-            ),
-        }
-
-        # Custom styles
-        line_styles = {"Series 1": "--", "Series 2": ":"}
-
-        colors = {"Series 1": "blue", "Series 2": "red"}
-
+    def test_plot_multiline(self):
         # Plotting
-        fig = Plot.multi_line_plot(
-            data=data,
+        fig = Plot.plot_multiline(
+            data=self.data,
             title="Custom Multi-Line Plot",
-            x_label="Time",
-            y_label="Value",
-            line_styles=line_styles,
-            colors=colors,
-            rotate_xticks=True,
+            xlabel="Time",
+            ylabel="Value",
         )
 
         # Show

@@ -118,6 +118,11 @@ class VectorizedBacktest(Metrics):
         print("Generating summary and report...")
         self._calculate_metrics()
 
+        self.data["datetime"] = pd.to_datetime(self.data.index, unit="ns")
+        # self.daily_data["datetime"] = pd.to_datetime(
+        #     self.daily_data.index, unit="ns"
+        # )
+        #
         # Build performance report
         self.build_report()
 
@@ -304,35 +309,34 @@ class VectorizedBacktest(Metrics):
         )
 
     def build_report(self):
+        # self.data["datetime"] = pd.to_datetime(self.data.index, unit="ns")
+        # self.data.index.name = "datetime"
 
         # Plots
         equity_plot_path = f"{self.output_dir}/equity_plot.png"
-        Plot.line_plot(
-            x=pd.to_datetime(self.data.index, unit="ns"),
-            y=self.data["equity_value"],
+        Plot.plot_line(
+            data=self.data.set_index("datetime")["equity_value"],
             title="Equity Curve",
-            x_label="Time",
-            y_label="Equity Value",
+            xlabel="Time",
+            ylabel="Equity Value",
             save_path=equity_plot_path,
         )
 
         cum_return_path = f"{self.output_dir}/return_plot.png"
-        Plot.line_plot(
-            x=pd.to_datetime(self.data.index, unit="ns"),
-            y=self.data["cumulative_return"],
+        Plot.plot_line(
+            data=self.data.set_index("datetime")["cumulative_return"],
             title="Cumulative Return",
-            x_label="Time",
-            y_label="Return Value",
+            xlabel="Time",
+            ylabel="Return Value",
             save_path=cum_return_path,
         )
 
         drawdown_path = f"{self.output_dir}/drawdown_plot.png"
-        Plot.line_plot(
-            x=pd.to_datetime(self.data.index, unit="ns"),
-            y=self.data["drawdown"].tolist(),
+        Plot.plot_line(
+            data=self.data.set_index("datetime")["drawdown"],
             title="Drawdown Curve",
-            x_label="Time",
-            y_label="Drawdown Value",
+            xlabel="Time",
+            ylabel="Drawdown Value",
             save_path=drawdown_path,
         )
 

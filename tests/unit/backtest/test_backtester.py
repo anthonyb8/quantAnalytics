@@ -134,6 +134,9 @@ class TestVectorizedBacktest(unittest.TestCase):
                 "equity_value": [10000.0, 10000.0, 10000.0, 10000.0, 10015.0],
             }
         )
+        self.backtest.data.set_index("ts_event", inplace=True)
+
+        # self.backtest.data.index = self.backtest.data["ts_event"]
 
         # Test
         self.backtest.summary()
@@ -165,6 +168,13 @@ class TestVectorizedBacktest(unittest.TestCase):
                 "drawdown": [0.0, 0.0, 0.0, 0.0, 0.0],
             }
         )
+
+        # Decide which column to use as the index
+        expected_df.set_index("ts_event", inplace=True)
+        expected_df["datetime"] = pd.to_datetime(expected_df.index, unit="ns")
+
+        # expected_df.index = pd.to_datetime(expected_df["ts_event"], unit="ns")
+        # expected_df.index.name = "datetime"
 
         expected_summary_keys = [
             "annual_standard_deviation",

@@ -18,6 +18,7 @@ def main():
     df = DataHandler.align_timestamps(df, "drop")
     df = df.pivot(index="ts_event", columns="symbol", values="close")
     df.dropna(inplace=True)
+    # df.reset_index(inplace=True)
 
     # Parameters
     initial_capital = 10000
