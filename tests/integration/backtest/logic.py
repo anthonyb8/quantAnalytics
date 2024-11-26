@@ -3,6 +3,7 @@ import pandas as pd
 from enum import Enum, auto
 from quantAnalytics.backtest.base_strategy import BaseStrategy
 from quantAnalytics.report.report import DivBuilder, Header
+from quantAnalytics.backtest.base_strategy import SymbolMap
 
 
 class Signal(Enum):
@@ -16,10 +17,11 @@ class Signal(Enum):
 
 
 class Cointegrationzscore(BaseStrategy):
-    def __init__(self, symbols: list):
+    def __init__(self, symbols: SymbolMap):
+        super().__init__(symbols)
         # parameters
+        self.symbols = symbols.get_symbols()
         self.start_index = 100
-        self.symbols = symbols
         self.zscore_lookback = 30
         self.entry_threshold = 2
         self.exit_threshold = 1
@@ -28,8 +30,6 @@ class Cointegrationzscore(BaseStrategy):
         # data
         self.last_signal = Signal.NoSignal
         self.data: pd.DataFrame
-        # self.historical_spread = []
-        # self.historical_zscore = []
 
     def prepare(self, data: pd.DataFrame) -> str:
         html_div = DivBuilder()
@@ -43,6 +43,8 @@ class Cointegrationzscore(BaseStrategy):
 
         # Z-score
         self.data["zscore"] = self.update_zscore()
+
+        super().prepare(data)
 
         return html_div.build()
 
@@ -151,7 +153,6 @@ class Cointegrationzscore(BaseStrategy):
         - pandas.DataFrame : Contains the results of the backtests, including original data plus signals and positions.
         """
 
-        # print(self.data)
         # Iterate through DataFrame rows
         for i in range(self.start_index, len(self.data)):
             current_zscore = self.data.iloc[i]["zscore"]
@@ -163,36 +164,15 @@ class Cointegrationzscore(BaseStrategy):
             # Check for entry signals
             if self.last_signal == Signal.NoSignal:
                 if self._entry_signal(current_zscore):
-                    for ticker, weights in self.weights.items():
-                        if (
-                            self.last_signal == Signal.Undervalued
-                            and weights > 0
-                        ):
+                    for ticker, weight in self.weights.items():
+                        if self.last_signal == Signal.Undervalued:
                             self.data.at[
                                 self.data.index[i], f"{ticker}_signal"
-                            ] = 1
-                        elif (
-                            self.last_signal == Signal.Undervalued
-                            and weights < 0
-                        ):
+                            ] = weight
+                        elif self.last_signal == Signal.Overvalued:
                             self.data.at[
                                 self.data.index[i], f"{ticker}_signal"
-                            ] = -1
-                        elif (
-                            self.last_signal == Signal.Overvalued
-                            and weights > 0
-                        ):
-                            self.data.at[
-                                self.data.index[i], f"{ticker}_signal"
-                            ] = -1
-                        elif (
-                            self.last_signal == Signal.Overvalued
-                            and weights < 0
-                        ):
-                            self.data.at[
-                                self.data.index[i], f"{ticker}_signal"
-                            ] = 1
-
+                            ] = -weight
             # Check for exit signals
             else:
                 if self._exit_signal(current_zscore):
@@ -201,5 +181,3 @@ class Cointegrationzscore(BaseStrategy):
                             self.data.index[i], f"{ticker}_signal"
                         ] = 0
                     self.last_signal = Signal.NoSignal  # reset to no position
-
-        # return self.data

@@ -108,25 +108,38 @@ def resample_daily(df: pd.DataFrame, tz_info="UTC"):
     if tz_info != "UTC":
         utc = False
 
-        # Convert index to readable datetime
+    # Convert index to readable datetime
     df.index = pd.to_datetime(
         df.index.map(lambda x: unix_to_iso(x, tz_info)), utc=utc
     )
 
-    # Store original UNIX timestamps before resampling
-    original_timestamps = df.index.to_series().resample("D").last().dropna()
+    # Resample to daily frequency
+    resampled = df.resample("D").last()
+    # print(resampled.head(10))
 
-    # Resample to daily frequency, using the last value of each day
-    daily_df = df.resample("D").last().dropna()
-
-    # Align indexes if they don't match in length
-    if len(original_timestamps) != len(daily_df):
-        original_timestamps = original_timestamps[daily_df.index]
+    # Drop rows where all values are NaN
+    resampled = resampled.dropna(how="all")
+    # print(resampled.head(10))
 
     # Restore original UNIX timestamps
-    daily_df.index = original_timestamps.map(
-        lambda x: iso_to_unix(x.isoformat())
-    )
-    daily_df.index.name = "timestamp"
+    resampled.index = resampled.index.map(lambda x: iso_to_unix(x.isoformat()))
+    resampled.index.name = "timestamp"
 
-    return daily_df
+    # print(resampled.head(15))
+    # # Store original UNIX timestamps before resampling
+    # original_timestamps = df.index.to_series().resample("D").last().dropna()
+    #
+    # # Resample to daily frequency, using the last value of each day
+    # daily_df = df.resample("D").last().dropna()
+    #
+    # # Align indexes if they don't match in length
+    # if len(original_timestamps) != len(daily_df):
+    #     original_timestamps = original_timestamps[daily_df.index]
+    #
+    # # Restore original UNIX timestamps
+    # daily_df.index = original_timestamps.map(
+    #     lambda x: iso_to_unix(x.isoformat())
+    # )
+    # daily_df.index.name = "timestamp"
+
+    return resampled

@@ -1,7 +1,7 @@
 import unittest
 import pandas as pd
 from unittest.mock import MagicMock
-from quantAnalytics.backtest.base_strategy import BaseStrategy
+from quantAnalytics.backtest.base_strategy import BaseStrategy, SymbolMap
 from quantAnalytics.backtest.backtester import VectorizedBacktest
 
 
@@ -22,11 +22,10 @@ class TestVectorizedBacktest(unittest.TestCase):
         )
         # Parameters
         self.initial_capital = 10000
-        self.contract_details = {
-            "A": {"quantity_multiplier": 40000, "price_multiplier": 0.01},
-            "B": {"quantity_multiplier": 5000, "price_multiplier": 0.01},
-        }
-        # tickers = list(contract_details.keys())
+        self.contract_details = SymbolMap()
+        self.contract_details.append_symbol("A", 40000, 0.01)
+        self.contract_details.append_symbol("B", 5000, 0.01)
+
         self.mock_strategy = MagicMock(spec=BaseStrategy)
         self.mock_strategy.prepare.return_value = None
         self.backtest = VectorizedBacktest(
@@ -37,22 +36,6 @@ class TestVectorizedBacktest(unittest.TestCase):
             "backtest.html",
             "/Users/anthony/projects/midas/quantAnalytics/tests/integration/backtest_unit_output",
         )
-
-    def test_setup(self):
-        # Test
-        self.mock_strategy.prepare.return_value = None
-        backtest = VectorizedBacktest(
-            self.mock_strategy,
-            self.test_data,
-            self.contract_details,
-            self.initial_capital,
-            "backtest.html",
-            "/Users/anthony/projects/midas/quantAnalytics/tests/integration/backtest_unit_output",
-        )
-
-        # Validate
-        self.assertIn("A_signal", backtest.data.columns)
-        self.assertIn("B_signal", backtest.data.columns)
 
     def test_run(self):
         lag = 1
@@ -98,9 +81,6 @@ class TestVectorizedBacktest(unittest.TestCase):
                 "B_position_pnl": [0.0, 0.0, 0.0, 0.0, -25.0],
                 "portfolio_pnl": [0.0, 0.0, 0.0, 0.0, 15.0],
                 "equity_value": [10000.0, 10000.0, 10000.0, 10000.0, 10015.0],
-                # "period_return": [0.0, 0.0, 0.0, 0.0, 0.0015],
-                # "cumulative_return": [0.0, 0.0, 0.0, 0.0, 0.0015],
-                # "drawdown": [0.0, 0.0, 0.0, 0.0, 0.0],
             }
         )
 
@@ -135,8 +115,9 @@ class TestVectorizedBacktest(unittest.TestCase):
             }
         )
         self.backtest.data.set_index("ts_event", inplace=True)
-
-        # self.backtest.data.index = self.backtest.data["ts_event"]
+        self.backtest.data["datetime"] = pd.to_datetime(
+            self.backtest.data.index, unit="ns"
+        )
 
         # Test
         self.backtest.summary()
@@ -163,18 +144,14 @@ class TestVectorizedBacktest(unittest.TestCase):
                 "B_position_pnl": [0.0, 0.0, 0.0, 0.0, -25.0],
                 "portfolio_pnl": [0.0, 0.0, 0.0, 0.0, 15.0],
                 "equity_value": [10000.0, 10000.0, 10000.0, 10000.0, 10015.0],
-                "period_return": [0.0, 0.0, 0.0, 0.0, 0.0015],
-                "cumulative_return": [0.0, 0.0, 0.0, 0.0, 0.0015],
-                "drawdown": [0.0, 0.0, 0.0, 0.0, 0.0],
             }
         )
 
-        # Decide which column to use as the index
         expected_df.set_index("ts_event", inplace=True)
         expected_df["datetime"] = pd.to_datetime(expected_df.index, unit="ns")
-
-        # expected_df.index = pd.to_datetime(expected_df["ts_event"], unit="ns")
-        # expected_df.index.name = "datetime"
+        expected_df["period_return"] = [0.0, 0.0, 0.0, 0.0, 0.0015]
+        expected_df["cumulative_return"] = [0.0, 0.0, 0.0, 0.0, 0.0015]
+        expected_df["drawdown"] = [0.0, 0.0, 0.0, 0.0, 0.0]
 
         expected_summary_keys = [
             "annual_standard_deviation",

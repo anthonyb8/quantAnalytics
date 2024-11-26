@@ -1,5 +1,30 @@
 from abc import ABC, abstractmethod
 import pandas as pd
+from typing import List, Dict
+import numpy as np
+
+
+class SymbolMap:
+    def __init__(self):
+        self.map = {}
+
+    def append_symbol(self, symbol: str, quantity_mp: int, price_mp: float):
+        self.map[symbol] = {
+            "quantity_multiplier": quantity_mp,
+            "price_multiplier": price_mp,
+        }
+
+    def get_quantity_mp(self, symbol: str) -> int:
+        return self.map[symbol]["quantity_multiplier"]
+
+    def get_price_mp(self, symbol: str) -> float:
+        return self.map[symbol]["price_multiplier"]
+
+    def get_map(self) -> Dict:
+        return self.map
+
+    def get_symbols(self) -> List:
+        return list(self.map.keys())
 
 
 class BaseStrategy(ABC):
@@ -13,10 +38,12 @@ class BaseStrategy(ABC):
     - historical_data: Storage for historical market data, initially set to None.
     """
 
-    def __init__(self):
+    def __init__(self, symbols_map: SymbolMap):
         """
         Initializes the BaseStrategy with components for managing historical data.
         """
+
+        self.symbols_map = symbols_map
 
     @abstractmethod
     def prepare(self, data: pd.DataFrame) -> str:
@@ -32,7 +59,8 @@ class BaseStrategy(ABC):
         Returns:
         - int: The index in the dataset where the backtest should begin, i.e., last used data point + 1.
         """
-        pass
+        for symbol in self.symbols_map.get_symbols():
+            self.data[f"{symbol}_signal"] = np.nan
 
     @abstractmethod
     def generate_signals(self) -> None:

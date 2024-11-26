@@ -2,6 +2,8 @@ from .logic import Cointegrationzscore
 from quantAnalytics.data.handler import DataHandler
 from quantAnalytics.backtest.backtester import VectorizedBacktest
 from mbn import BufferStore
+from quantAnalytics.backtest.base_strategy import SymbolMap
+import pandas as pd
 
 
 def main():
@@ -18,21 +20,24 @@ def main():
     df = DataHandler.align_timestamps(df, "drop")
     df = df.pivot(index="ts_event", columns="symbol", values="close")
     df.dropna(inplace=True)
-    # df.reset_index(inplace=True)
+
+    df.insert(
+        loc=0,
+        column="datetime",
+        value=pd.to_datetime(df.index, unit="ns"),
+    )
 
     # Parameters
     initial_capital = 10000
-    contract_details = {
-        "HE.n.0": {"quantity_multiplier": 40000, "price_multiplier": 0.01},
-        "ZC.n.0": {"quantity_multiplier": 5000, "price_multiplier": 0.01},
-    }
-    tickers = list(contract_details.keys())
+    symbol_map = SymbolMap()
+    symbol_map.append_symbol("HE.n.0", 40000, 0.01)
+    symbol_map.append_symbol("ZC.n.0", 5000, 0.01)
 
     # Backtest
     backtest = VectorizedBacktest(
-        Cointegrationzscore(tickers),
+        Cointegrationzscore(symbol_map),
         df,
-        contract_details,
+        symbol_map,
         initial_capital,
         "backtest.html",
         "/Users/anthony/projects/midas/quantAnalytics/tests/integration/outputs/backtest",

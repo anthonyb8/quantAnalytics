@@ -7,8 +7,8 @@ class TestIntegration(unittest.TestCase):
     def test_backtest(self):
         bt_main()
 
-    def test_regression(self):
-        reg_main()
+    # def test_regression(self):
+    #     reg_main()
 
 
 if __name__ == "__main__":

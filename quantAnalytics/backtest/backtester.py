@@ -9,6 +9,7 @@ from quantAnalytics.utils import resample_daily
 from quantAnalytics.backtest.base_strategy import BaseStrategy
 from quantAnalytics.backtest.metrics import Metrics
 from quantAnalytics.analysis.plots import Plot
+from quantAnalytics.backtest.base_strategy import SymbolMap
 
 
 class VectorizedBacktest(Metrics):
@@ -36,7 +37,7 @@ class VectorizedBacktest(Metrics):
         self,
         strategy: BaseStrategy,
         data: pd.DataFrame,
-        symbols_map: dict,
+        symbols_map: SymbolMap,
         initial_capital: float = 10000,
         file_name: str = "backtest",
         output_directory: str = "report",
@@ -61,13 +62,6 @@ class VectorizedBacktest(Metrics):
 
         self.setup()
 
-    def _initialize_signal_columns(self):
-        """
-        Pre-create signal columns for each symbol in the data with all zeros.
-        """
-        for symbol in self.symbols_map.keys():
-            self.data[f"{symbol}_signal"] = np.nan
-
     def setup(self):
         """
         Dynamic setup based on the strategy’s preparation needs.
@@ -76,8 +70,6 @@ class VectorizedBacktest(Metrics):
         print("Setting up backtest...")
 
         try:
-            # Pre-create signal columns with zeros in self.data
-            self._initialize_signal_columns()
 
             preparation_html = self.strategy.prepare(self.data)
 
@@ -116,13 +108,9 @@ class VectorizedBacktest(Metrics):
         Generates performance summary metrics and builds a report.
         """
         print("Generating summary and report...")
+
         self._calculate_metrics()
 
-        self.data["datetime"] = pd.to_datetime(self.data.index, unit="ns")
-        # self.daily_data["datetime"] = pd.to_datetime(
-        #     self.daily_data.index, unit="ns"
-        # )
-        #
         # Build performance report
         self.build_report()
 
@@ -142,28 +130,23 @@ class VectorizedBacktest(Metrics):
         - signals (pd.DataFrame): DataFrame containing trading signals for each ticker.
         - lag (int): The number of periods the entry/exit of a position will be lagged after a signal.
         """
-        for symbol in self.symbols_map.keys():
+        for symbol in self.symbols_map.get_symbols():
+            # Columns for signals and positions
+            signal_col = f"{symbol}_signal"
+            position_col = f"{symbol}_position"
+            position_value_col = f"{symbol}_position_value"
+
             # Position signals are filled forward until changed
-            position_column = f"{symbol}_position"
-            self.data[position_column] = (
-                self.data[f"{symbol}_signal"].ffill().shift(lag).fillna(0)
+            self.data[position_col] = (
+                self.data[signal_col].ffill().shift(lag).fillna(0)
             )
 
-            # Retrieve multipliers and weights
-            hedge_ratio = abs(self.strategy.weights[symbol])
-            quantity_multiplier = self.symbols_map[symbol][
-                "quantity_multiplier"
-            ]
-            price_multiplier = self.symbols_map[symbol]["price_multiplier"]
-
             # Calculate the dollar value of each position
-            position_value_column = f"{symbol}_position_value"
-            self.data[position_value_column] = (
-                self.data[position_column]
+            self.data[position_value_col] = (
+                self.data[position_col]
                 * self.data[symbol]
-                * hedge_ratio
-                * quantity_multiplier
-                * price_multiplier
+                * self.symbols_map.get_quantity_mp(symbol)
+                * self.symbols_map.get_price_mp(symbol)
             )
 
     def _calculate_positions_pnl(self) -> None:
@@ -214,7 +197,9 @@ class VectorizedBacktest(Metrics):
         - risk_free_rate (float): The annual risk-free rate used for calculating the Sharpe ratio. Default is 0.04 (4%).
         """
         # Ensure that equity values are numeric and NaNs are handled
-        self.daily_data = resample_daily(self.data.copy(), "EST")
+        self.daily_data = resample_daily(self.data.copy())
+        # print(self.data.head(5))
+        # print(self.daily_data.head(5))
 
         daily_equity_values = pd.to_numeric(
             self.daily_data["equity_value"], errors="coerce"
