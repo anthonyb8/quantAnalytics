@@ -39,6 +39,7 @@ class VectorizedBacktest(Metrics):
         data: pd.DataFrame,
         symbols_map: SymbolMap,
         initial_capital: float = 10000,
+        risk_free_rate: float = 0.04,
         file_name: str = "backtest",
         output_directory: str = "report",
         css_path: str = "",
@@ -56,6 +57,7 @@ class VectorizedBacktest(Metrics):
         self.data = data
         self.symbols_map = symbols_map
         self.initial_capital = initial_capital
+        self.rf_rate = risk_free_rate
         self.output_dir = output_directory
         self.daily_data: pd.DataFrame
         self.stats_df: pd.DataFrame
@@ -110,6 +112,8 @@ class VectorizedBacktest(Metrics):
         print("Generating summary and report...")
 
         self._calculate_metrics()
+        self._calculate_daily_metrics()
+        self._calculate_summary_stats()
 
         # Build performance report
         self.build_report()
@@ -188,7 +192,30 @@ class VectorizedBacktest(Metrics):
             + self.data["portfolio_pnl"].cumsum()
         )
 
-    def _calculate_metrics(self, risk_free_rate: float = 0.04) -> None:
+    def _calculate_metrics(self) -> None:
+        """
+        Calculates performance metrics for the backtest including period return, cumulative return, drawdown, and Sharpe ratio.
+        ** Note: All Summary statistics are calculated on an annualized basis.
+
+        Parameters:
+        - risk_free_rate (float): The annual risk-free rate used for calculating the Sharpe ratio. Default is 0.04 (4%).
+        """
+        equity = self.data["equity_value"].to_numpy()
+
+        # Compute simple and cumulative returns
+        simple_returns = self.simple_returns(equity)
+        cumulative_returns = self.cumulative_returns(equity)
+
+        # Adjust for initial zero return
+        simple_returns_adj = np.insert(simple_returns, 0, 0)
+        cumulative_returns_adj = np.insert(cumulative_returns, 0, 0)
+
+        # Update test DataFrame
+        self.data["simple_return"] = simple_returns_adj
+        self.data["cumulative_return"] = cumulative_returns_adj
+        self.data["drawdown"] = Metrics.drawdown(simple_returns_adj)
+
+    def _calculate_daily_metrics(self) -> None:
         """
         Calculates performance metrics for the backtest including period return, cumulative return, drawdown, and Sharpe ratio.
         ** Note: All Summary statistics are calculated on an annualized basis.
@@ -198,61 +225,44 @@ class VectorizedBacktest(Metrics):
         """
         # Ensure that equity values are numeric and NaNs are handled
         self.daily_data = resample_daily(self.data.copy())
-        # print(self.data.head(5))
-        # print(self.daily_data.head(5))
+        equity = self.daily_data["equity_value"].to_numpy()
 
-        daily_equity_values = pd.to_numeric(
-            self.daily_data["equity_value"], errors="coerce"
-        ).fillna(0)
-        equity_values = pd.to_numeric(
-            self.data["equity_value"], errors="coerce"
-        ).fillna(0)
+        simple_returns = self.simple_returns(equity)
+        cum_returns = self.cumulative_returns(equity)
 
-        # Compute simple and cumulative returns
-        period_returns = self.simple_returns(equity_values.values)
-        period_returns_adjusted = np.insert(
-            period_returns, 0, 0
-        )  # Adjust for initial zero return
-        cumulative_returns = self.cumulative_returns(equity_values.values)
-        cumulative_returns_adjusted = np.insert(cumulative_returns, 0, 0)
-
-        # Update test DataFrame
-        self.data["period_return"] = period_returns_adjusted
-        self.data["cumulative_return"] = cumulative_returns_adjusted
-        self.data["drawdown"] = Metrics.drawdown(period_returns_adjusted)
-
-        # Compute simple and cumulative returns daily data
-        daily_returns = self.simple_returns(daily_equity_values.values)
-        daily_returns_adjusted = np.insert(
-            daily_returns, 0, 0
-        )  # Adjust for initial zero return
-        daily_cumulative_returns = self.cumulative_returns(
-            daily_equity_values.values
-        )
-        daily_cumulative_returns_adjusted = np.insert(
-            daily_cumulative_returns, 0, 0
-        )
+        # Adjust for initial zero return
+        simple_returns_adj = np.insert(simple_returns, 0, 0)
+        cum_returns_adj = np.insert(cum_returns, 0, 0)
 
         # Update daily dataframe
-        self.daily_data["period_return"] = daily_returns_adjusted
-        self.daily_data["cumulative_return"] = (
-            daily_cumulative_returns_adjusted
-        )
-        self.daily_data["drawdown"] = Metrics.drawdown(daily_returns_adjusted)
+        self.daily_data["simple_return"] = simple_returns_adj
+        self.daily_data["cumulative_return"] = cum_returns_adj
+        self.daily_data["drawdown"] = Metrics.drawdown(simple_returns_adj)
+
+        # Drop cluttered columns
+        columns = ("_position", "_position_value", "_pnl", "_signal")
+        self.daily_data = self.daily_data.loc[
+            :, ~self.daily_data.columns.str.endswith(columns)
+        ]
+
+    def _calculate_summary_stats(self):
+        simple_daily = self.daily_data["simple_return"].to_numpy()
+        simple_period = self.data["simple_return"].to_numpy()
+        equity_values = self.data["equity_value"].to_numpy()
+        total_return = self.data["cumulative_return"].to_numpy()[-1]
+        num_days = len(simple_daily)
 
         # Calculate summary statistics
         self.summary_stats = {
-            "annual_standard_deviation": Metrics.annual_standard_deviation(
-                daily_returns_adjusted
-            ),
-            "sharpe_ratio": Metrics.sharpe_ratio(
-                daily_returns_adjusted, risk_free_rate
-            ),
-            "sortino_ratio": Metrics.sortino_ratio(daily_returns_adjusted),
-            "max_drawdown": Metrics.max_drawdown(
-                period_returns_adjusted
-            ),  # standardized
-            "ending_equity": equity_values.values[-1],  # raw
+            "beg_equity": equity_values[0],
+            "ending_equity": equity_values[-1],
+            "annual_return": ((1 + total_return) ** (252 / num_days)) - 1,
+            "total_return": total_return,
+            "daily_std": np.std(simple_daily, ddof=1),
+            "annual_std": Metrics.annual_standard_deviation(simple_daily),
+            "max_drawdown": Metrics.max_drawdown(simple_period),
+            "sharpe_ratio": Metrics.sharpe_ratio(simple_daily, self.rf_rate),
+            "sortino_ratio": Metrics.sortino_ratio(simple_daily),
         }
 
         # Summary Stats table
@@ -294,9 +304,6 @@ class VectorizedBacktest(Metrics):
         )
 
     def build_report(self):
-        # self.data["datetime"] = pd.to_datetime(self.data.index, unit="ns")
-        # self.data.index.name = "datetime"
-
         # Plots
         equity_plot_path = f"{self.output_dir}/equity_plot.png"
         Plot.plot_line(

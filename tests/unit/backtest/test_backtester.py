@@ -21,6 +21,7 @@ class TestVectorizedBacktest(unittest.TestCase):
             }
         )
         # Parameters
+        self.risk_free_rate = 0.04
         self.initial_capital = 10000
         self.contract_details = SymbolMap()
         self.contract_details.append_symbol("A", 40000, 0.01)
@@ -33,6 +34,7 @@ class TestVectorizedBacktest(unittest.TestCase):
             self.test_data,
             self.contract_details,
             self.initial_capital,
+            self.risk_free_rate,
             "backtest.html",
             "/Users/anthony/projects/midas/quantAnalytics/tests/integration/backtest_unit_output",
         )
@@ -149,16 +151,20 @@ class TestVectorizedBacktest(unittest.TestCase):
 
         expected_df.set_index("ts_event", inplace=True)
         expected_df["datetime"] = pd.to_datetime(expected_df.index, unit="ns")
-        expected_df["period_return"] = [0.0, 0.0, 0.0, 0.0, 0.0015]
+        expected_df["simple_return"] = [0.0, 0.0, 0.0, 0.0, 0.0015]
         expected_df["cumulative_return"] = [0.0, 0.0, 0.0, 0.0, 0.0015]
         expected_df["drawdown"] = [0.0, 0.0, 0.0, 0.0, 0.0]
 
         expected_summary_keys = [
-            "annual_standard_deviation",
+            "beg_equity",
+            "ending_equity",
+            "annual_return",
+            "total_return",
+            "daily_std",
+            "annual_std",
+            "max_drawdown",
             "sharpe_ratio",
             "sortino_ratio",
-            "max_drawdown",
-            "ending_equity",
         ]
         # Validate
         pd.testing.assert_frame_equal(expected_df, self.backtest.data)

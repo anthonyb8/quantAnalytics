@@ -29,6 +29,7 @@ def main():
 
     # Parameters
     initial_capital = 10000
+    rf_rate = 0.04
     symbol_map = SymbolMap()
     symbol_map.append_symbol("HE.n.0", 40000, 0.01)
     symbol_map.append_symbol("ZC.n.0", 5000, 0.01)
@@ -39,6 +40,7 @@ def main():
         df,
         symbol_map,
         initial_capital,
+        rf_rate,
         "backtest.html",
         "/Users/anthony/projects/midas/quantAnalytics/tests/integration/outputs/backtest",
     )

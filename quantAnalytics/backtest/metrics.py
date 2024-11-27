@@ -303,12 +303,11 @@ class Metrics:
             return np.array([0])
 
         try:
-            daily_std_dev = np.std(
-                returns, ddof=1
-            )  # Calculate daily standard deviation
-            annual_std_dev = daily_std_dev * np.sqrt(
-                252
-            )  # Assuming 252 trading days in a year
+            # Calculate daily standard deviation
+            daily_std_dev = np.std(returns, ddof=1)
+
+            # Assuming 252 trading days in a year (annualize)
+            annual_std_dev = daily_std_dev * np.sqrt(252)
             return np.around(annual_std_dev, decimals=decimals)
         except Exception as e:
             raise Exception(
@@ -319,6 +318,7 @@ class Metrics:
     def sharpe_ratio(
         returns: np.ndarray,
         risk_free_rate: float = 0.04,
+        annualize_period: int = 252,
         decimals: int = 6,
     ) -> float:
         """
@@ -343,32 +343,73 @@ class Metrics:
             return np.array([0])
 
         try:
-            daily_risk_free_rate = risk_free_rate / 252
-            excess_returns = returns - daily_risk_free_rate
+            # Annualized return
+            annualized_return = returns.mean() * annualize_period
 
-            # Annualized calculations
-            annualized_avg_excess_return = excess_returns.mean() * 252
-            annualized_std_excess_return = excess_returns.std(
-                ddof=1
-            ) * np.sqrt(252)
+            # Annual Standard Deviation returns
+            std_return = returns.std(ddof=1) * np.sqrt(annualize_period)
 
-            # Sharpe
-            sharpe_ratio = (
-                annualized_avg_excess_return / annualized_std_excess_return
-            )
+            excess_return = annualized_return - risk_free_rate
+            sharpe_ratio = excess_return / std_return
 
-            return (
-                np.around(sharpe_ratio, decimals=decimals)
-                if excess_returns.std(ddof=1) != 0
-                else 0
-            )
+            return np.around(sharpe_ratio, decimals=decimals)
         except Exception as e:
             raise Exception(f"Error calculating sharpe ratio : {e}")
 
+    # @staticmethod
+    # def sharpe_ratio(
+    #     returns: np.ndarray,
+    #     risk_free_rate: float = 0.04,
+    #     decimals: int = 6,
+    # ) -> float:
+    #     """
+    #     Calculate the Sharpe ratio of the strategy.
+    #
+    #     The Sharpe ratio measures the performance of an investment compared to a risk-free asset,
+    #     after adjusting for its risk. The ratio is the average return earned in excess of the risk-free
+    #     rate per unit of volatility or total risk.
+    #
+    #     Parameters:
+    #     - returns (np.ndarray): A 1D array of returns.
+    #     - risk_free_rate (float): The risk-free rate. Default is 0.04 (4% annually).
+    #     - decimals (int): Decimal rounding on return values. Defaults to 6.
+    #
+    #     Returns:
+    #     - float: The Sharpe ratio, rounded to four decimal places.
+    #     """
+    #     if not isinstance(returns, np.ndarray):
+    #         raise TypeError("returns must be a numpy array")
+    #
+    #     if len(returns) == 0:
+    #         return np.array([0])
+    #
+    #     try:
+    #         daily_risk_free_rate = risk_free_rate / 252
+    #         excess_returns = returns - daily_risk_free_rate
+    #
+    #         # Annualized calculations
+    #         annualized_avg_excess_return = excess_returns.mean() * 252
+    #         annualized_std_excess_return = excess_returns.std(
+    #             ddof=1
+    #         ) * np.sqrt(252)
+    #
+    #         # Sharpe
+    #         sharpe_ratio = (
+    #             annualized_avg_excess_return / annualized_std_excess_return
+    #         )
+    #
+    #         return (
+    #             np.around(sharpe_ratio, decimals=decimals)
+    #             if excess_returns.std(ddof=1) != 0
+    #             else 0
+    #         )
+    #     except Exception as e:
+    #         raise Exception(f"Error calculating sharpe ratio : {e}")
     @staticmethod
     def sortino_ratio(
         returns: np.ndarray,
         risk_free_rate: float = 0.04,
+        annualize_period: int = 252,
         decimals: int = 6,
     ) -> float:
         """
@@ -393,26 +434,72 @@ class Metrics:
             return 0
 
         try:
-            daily_risk_free_rate = risk_free_rate / 252
-            excess_returns = returns - daily_risk_free_rate
-            downside_returns = excess_returns[excess_returns < 0]
+            # Annualized return
+            annualized_return = returns.mean() * annualize_period
 
-            avg_excess_return = np.mean(excess_returns)
-            downside_deviation = np.std(downside_returns, ddof=1)
+            # Downside
+            downside_ret = returns[returns < 0]
+            if len(downside_ret) == 0:
+                return 0.0
 
-            annualized_avg_excess_return = avg_excess_return * 252
-            annualized_downside_deviation = downside_deviation * np.sqrt(252)
+            # Annual Standard Deviation downside returns
+            std_return = downside_ret.std(ddof=1) * np.sqrt(annualize_period)
 
-            sortino_ratio = (
-                annualized_avg_excess_return / annualized_downside_deviation
-            )
-            return (
-                np.around(sortino_ratio, decimals=decimals)
-                if annualized_downside_deviation != 0
-                else 0
-            )
+            excess_return = annualized_return - risk_free_rate
+            sortino_ratio = excess_return / std_return
+
+            return np.around(sortino_ratio, decimals=decimals)
         except Exception as e:
             raise Exception(f"Error calculating sortino ratio : {e}")
+
+    # @staticmethod
+    # def sortino_ratio(
+    #     returns: np.ndarray,
+    #     risk_free_rate: float = 0.04,
+    #     decimals: int = 6,
+    # ) -> float:
+    #     """
+    #     Calculate the Sortino Ratio for a given returns array.
+    #
+    #     The Sortino ratio differentiates harmful volatility from total overall volatility
+    #     by using the asset's standard deviation of negative returns, called downside deviation.
+    #     It measures the risk-adjusted return of an investment asset, portfolio, or strategy.
+    #
+    #     Parameters:
+    #     - returns (np.ndarray): A 1D array of returns.
+    #     - risk_free_rate (float): The risk-free rate. Default is 0.04 (4% annually).
+    #     - decimals (int): Decimal rounding on return values. Defaults to 6.
+    #
+    #     Returns:
+    #     - float: The Sortino ratio, rounded to four decimal places.
+    #     """
+    #     if not isinstance(returns, np.ndarray):
+    #         raise TypeError("returns must be a numpy array")
+    #
+    #     if len(returns) == 0:
+    #         return 0
+    #
+    #     try:
+    #         daily_risk_free_rate = risk_free_rate / 252
+    #         excess_returns = returns - daily_risk_free_rate
+    #         downside_returns = excess_returns[excess_returns < 0]
+    #
+    #         avg_excess_return = np.mean(excess_returns)
+    #         downside_deviation = np.std(downside_returns, ddof=1)
+    #
+    #         annualized_avg_excess_return = avg_excess_return * 252
+    #         annualized_downside_deviation = downside_deviation * np.sqrt(252)
+    #
+    #         sortino_ratio = (
+    #             annualized_avg_excess_return / annualized_downside_deviation
+    #         )
+    #         return (
+    #             np.around(sortino_ratio, decimals=decimals)
+    #             if annualized_downside_deviation != 0
+    #             else 0
+    #         )
+    #     except Exception as e:
+    #         raise Exception(f"Error calculating sortino ratio : {e}")
 
     @staticmethod
     def value_at_risk(
