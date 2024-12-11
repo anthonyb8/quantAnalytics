@@ -1,6 +1,7 @@
 import unittest
 from tests.integration.backtest.main import main as bt_main
-from tests.integration.regression.main import main as reg_main
+
+# from tests.integration.regression.main import main as reg_main
 
 
 class TestIntegration(unittest.TestCase):
