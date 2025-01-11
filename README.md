@@ -1,7 +1,7 @@
 # QuantAnalytics
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![pypi-version](https://img.shields.io/pypi/v/quantAnalytics.svg)](https://pypi.org/project/quant-analytics/)
+[![pypi-version](https://img.shields.io/pypi/v/quant-analytics.svg)](https://pypi.org/project/quant-analytics/)
 
 `QuantAnalytics` is a library designed for researching quantitative trading strategies and analyzing statistical relationships. It provides a seamless interface for performing statistical research, backtesting strategies, and generating comprehensive reports.
 
