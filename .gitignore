@@ -6,6 +6,7 @@ build/
 outputs/
 backtest_unit_output/
 # ./report
+dist/
 
 # General
 *.log
