@@ -1,6 +1,6 @@
 [project]
 name = "quant_analytics"
-version = "1.0.1"
+version = "1.0.2"
 description = "A financial performance and risk analysis library for quantitative research and backtesting."
 readme = "README.md"
 keywords = ["quantitative research", "backtesting", "finance", "risk analysis", "performance"]
