@@ -1,5 +1,8 @@
 # QuantAnalytics
 
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![pypi-version](https://img.shields.io/pypi/v/quantAnalytics.svg)](https://pypi.org/project/quant-analytics/)
+
 `QuantAnalytics` is a library designed for researching quantitative trading strategies and analyzing statistical relationships. It provides a seamless interface for performing statistical research, backtesting strategies, and generating comprehensive reports.
 
 ## Features
@@ -17,22 +20,13 @@
 - Generating detailed reports for data analysis and strategy validation.
 - Automating backtests and result visualizations for systematic research.
 
-## Getting Started
+## Installation
 
-To install `QuantAnalytics`, you need to build it from source for now:
+You can install `quant-analytics` directly from [PyPI](https://pypi.org/project/quant-analytics/):
 
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/your-repo/QuantAnalytics.git
-   cd QuantAnalytics
-   ```
-
-2. Install the library:
-
-   ```bash
-   pip install .
-   ```
+```bash
+pip install quant-analytics
+```
 
 ## Documentation
 
