@@ -5,6 +5,7 @@ build/
 *.html
 outputs/
 backtest_unit_output/
+# ./report
 
 # General
 *.log

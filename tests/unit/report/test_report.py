@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from unittest.mock import Mock, MagicMock
-from quantAnalytics.report.report import ReportBuilder, DivBuilder, Header
+from quant_analytics.report.report import ReportBuilder, DivBuilder, Header
 import shutil
 
 

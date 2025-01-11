@@ -1,8 +1,8 @@
 import unittest
 import pandas as pd
 from unittest.mock import MagicMock
-from quantAnalytics.backtest.base_strategy import BaseStrategy, SymbolMap
-from quantAnalytics.backtest.backtester import VectorizedBacktest
+from quant_analytics.backtest.base_strategy import BaseStrategy, SymbolMap
+from quant_analytics.backtest.backtester import VectorizedBacktest
 
 
 class TestVectorizedBacktest(unittest.TestCase):
@@ -36,7 +36,7 @@ class TestVectorizedBacktest(unittest.TestCase):
             self.initial_capital,
             self.risk_free_rate,
             "backtest.html",
-            "/Users/anthony/projects/midas/quantAnalytics/tests/integration/backtest_unit_output",
+            "/Users/anthony/projects/midas/quant_analytics/tests/integration/backtest_unit_output",
         )
 
     def test_run(self):

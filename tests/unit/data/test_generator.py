@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from statsmodels.tsa.stattools import adfuller
-from quantAnalytics.data.generator import DataGenerator
+from quant_analytics.data.generator import DataGenerator
 
 
 class TestTimeseriesTests(unittest.TestCase):

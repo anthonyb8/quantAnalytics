@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import pandas as pd
-from quantAnalytics.backtest.metrics import (
+from quant_analytics.backtest.metrics import (
     Metrics,
     # Metrics,
     AnnualizedVolZScore,

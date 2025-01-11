@@ -2,7 +2,7 @@ import unittest
 import pandas as pd
 from typing import List, Dict
 from pandas.testing import assert_frame_equal
-from quantAnalytics.data.handler import DataHandler
+from quant_analytics.data.handler import DataHandler
 import numpy as np
 
 

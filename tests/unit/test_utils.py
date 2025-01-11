@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from quantAnalytics.utils import (
+from quant_analytics.utils import (
     unix_to_iso,
     iso_to_unix,
     unix_to_date,

@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from quantAnalytics.result import Result
+from quant_analytics.result import Result
 
 
 class AnnualizedVolZScore(Result):

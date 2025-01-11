@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 from enum import Enum, auto
-from quantAnalytics.backtest.base_strategy import BaseStrategy
-from quantAnalytics.report.report import DivBuilder, Header
-from quantAnalytics.backtest.base_strategy import SymbolMap
+from quant_analytics.backtest.base_strategy import BaseStrategy
+from quant_analytics.report.report import DivBuilder, Header
+from quant_analytics.backtest.base_strategy import SymbolMap
 
 
 class Signal(Enum):

@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-from quantAnalytics.analysis.plots import Plot
+from quant_analytics.analysis.plots import Plot
 
 
 class TestPlot(unittest.TestCase):

@@ -1,15 +1,15 @@
 import numpy as np
 import pandas as pd
-from quantAnalytics.report.report import (
+from quant_analytics.report.report import (
     ReportBuilder,
     DivBuilder,
     Header,
 )
-from quantAnalytics.utils import resample_daily
-from quantAnalytics.backtest.base_strategy import BaseStrategy
-from quantAnalytics.backtest.metrics import Metrics
-from quantAnalytics.analysis.plots import Plot
-from quantAnalytics.backtest.base_strategy import SymbolMap
+from quant_analytics.utils import resample_daily
+from quant_analytics.backtest.base_strategy import BaseStrategy
+from quant_analytics.backtest.metrics import Metrics
+from quant_analytics.analysis.plots import Plot
+from quant_analytics.backtest.base_strategy import SymbolMap
 
 
 class VectorizedBacktest(Metrics):

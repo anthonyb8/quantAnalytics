@@ -1,5 +1,5 @@
 import pandas as pd
-from quantAnalytics.result import Result
+from quant_analytics.result import Result
 
 
 class ADFResult(Result):

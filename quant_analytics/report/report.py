@@ -260,7 +260,7 @@ class ReportBuilder(ComponentBuilder):
 
         if not css_path:
             with resources.as_file(
-                resources.files("quantAnalytics") / "styles.css"
+                resources.files("quant_analytics") / "styles.css"
             ) as css_file:
                 self.css_path = str(css_file)
         else:

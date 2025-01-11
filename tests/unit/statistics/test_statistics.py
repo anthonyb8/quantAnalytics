@@ -4,8 +4,8 @@ import pandas as pd
 from scipy import stats
 import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller
-from quantAnalytics.statistics.statistics import TimeseriesTests
-from quantAnalytics.data.generator import DataGenerator
+from quant_analytics.statistics.statistics import TimeseriesTests
+from quant_analytics.data.generator import DataGenerator
 
 
 def display_adf_results(

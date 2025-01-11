@@ -20,7 +20,7 @@ from statsmodels.tsa.vector_ar.vecm import (
     select_coint_rank,
 )
 from scipy.stats import shapiro
-from quantAnalytics.result import Result
+from quant_analytics.result import Result
 
 from .results import *
 

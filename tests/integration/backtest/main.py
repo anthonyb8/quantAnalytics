@@ -1,8 +1,8 @@
 from .logic import Cointegrationzscore
-from quantAnalytics.data.handler import DataHandler
-from quantAnalytics.backtest.backtester import VectorizedBacktest
+from quant_analytics.data.handler import DataHandler
+from quant_analytics.backtest.backtester import VectorizedBacktest
 from mbn import BufferStore
-from quantAnalytics.backtest.base_strategy import SymbolMap
+from quant_analytics.backtest.base_strategy import SymbolMap
 import pandas as pd
 
 
@@ -42,7 +42,7 @@ def main():
         initial_capital,
         rf_rate,
         "backtest.html",
-        "/Users/anthony/projects/midas/quantAnalytics/tests/integration/outputs/backtest",
+        "/Users/anthony/projects/midas/quant_analytics/tests/integration/outputs/backtest",
     )
     backtest.run(position_lag=1)
     backtest.summary()
