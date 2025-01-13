@@ -19,6 +19,8 @@ class Plot:
         ylabel="Value",
         xtick_interval=None,
         hline=False,
+        height: int = 12,
+        width: int = 6,
         save_path=None,
     ) -> plt.Figure:
         """
@@ -44,7 +46,7 @@ class Plot:
         y = data.values
 
         # Create the plot
-        fig, ax = plt.subplots(figsize=(12, 6))
+        fig, ax = plt.subplots(figsize=(height, width))
         ax.plot(
             x, y, alpha=0.8, label=data.name or "Data"
         )  # Use the Series name if available
@@ -81,6 +83,8 @@ class Plot:
         xtick_interval: int = 300,
         grid: bool = True,
         layout_tight: bool = True,
+        height: int = 12,
+        width: int = 6,
         save_path: str = None,
     ) -> plt.Figure:
         """
@@ -100,7 +104,7 @@ class Plot:
             plt.Figure: The created matplotlib figure.
         """
         # Create the figure and axes
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(height, width))
 
         # Plot each column as a line
         for column in data.columns:
@@ -147,6 +151,8 @@ class Plot:
         hline: float = 0,  # Add a horizontal line at this value if not None
         hline_color: str = "red",
         hline_style: str = "--",
+        height: int = 12,
+        width: int = 6,
         save_path: str = None,
     ) -> plt.Figure:
         """
@@ -171,7 +177,7 @@ class Plot:
             plt.Figure: The created matplotlib figure.
         """
         # Create the plot
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(height, width))
         ax.scatter(x, y, alpha=alpha, color=color, marker=marker)
 
         # Add horizontal line if specified
@@ -198,11 +204,13 @@ class Plot:
     def correlation_heatmap(
         df: pd.DataFrame,
         title: str,
+        height: int = 12,
+        width: int = 6,
         save_path: str = None,
     ) -> plt.Figure:
 
         correlation_matrix = df.corr()
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(height, width))
         sns.heatmap(
             correlation_matrix,
             annot=True,
@@ -227,6 +235,8 @@ class Plot:
         model_fit_function: Callable[[int], sm.tsa.VAR],
         maxlags: int = 12,
         title: str = "Lag Order Selection",
+        height: int = 12,
+        width: int = 6,
         save_path: str = None,
     ) -> plt.Figure:
         """
@@ -253,7 +263,7 @@ class Plot:
             hqic.append(model.hqic)
 
         # Create the plot
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(height, width))
         ax.plot(lags, aic, marker="o", label="AIC")
         ax.plot(lags, bic, marker="o", label="BIC")
         ax.plot(lags, hqic, marker="o", label="HQIC")
@@ -310,6 +320,8 @@ class Plot:
         primary_color: str = "blue",
         secondary_color: str = "red",
         xlabel: str = "Time",
+        height: int = 12,
+        width: int = 6,
         save_path: str = None,
     ) -> plt.Figure:
         """
@@ -337,7 +349,7 @@ class Plot:
             )
 
         # Create the plot
-        fig, ax1 = plt.subplots(figsize=(10, 6))
+        fig, ax1 = plt.subplots(figsize=(height, width))
 
         # Plot the primary data
         ax1.plot(
@@ -376,7 +388,11 @@ class Plot:
 
     @staticmethod
     def qq_plot(
-        residuals: pd.Series, title: str = "Q-Q Plot", save_path: str = None
+        residuals: pd.Series,
+        title: str = "Q-Q Plot",
+        height: int = 12,
+        width: int = 6,
+        save_path: str = None,
     ) -> plt.Figure:
         """
         Generate a Q-Q plot to analyze the normality of residuals in the regression model.
@@ -386,7 +402,7 @@ class Plot:
         """
 
         # Generate Q-Q plot
-        fig = plt.figure(figsize=(10, 6))
+        fig = plt.figure(figsize=(height, width))
         ax = fig.add_subplot(111)
         sm.qqplot(residuals, line="45", ax=ax, fit=True)
         ax.set_title(title)
@@ -406,6 +422,8 @@ class Plot:
         data: pd.Series,
         bins: str = "auto",
         title: str = "Histogram with Normal Distribution Curve",
+        height: int = 12,
+        width: int = 6,
         save_path: str = None,
     ) -> plt.Figure:
         """
@@ -428,7 +446,7 @@ class Plot:
         data = np.asarray(data)
 
         # Create figure and axis
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(height, width))
 
         # Generate histogram
         sns.histplot(
@@ -458,6 +476,8 @@ class Plot:
         data: pd.Series,
         bins: str = "auto",
         title: str = "Histogram with Kernel Density Estimate (KDE)",
+        height: int = 12,
+        width: int = 6,
         save_path: str = None,
     ) -> plt.Figure:
         """
@@ -479,7 +499,7 @@ class Plot:
         data = np.asarray(data)
 
         # Create figure and axis
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(height, width))
 
         # Generate histogram with KDE
         sns.histplot(data, bins=bins, kde=True, color="blue", ax=ax)
