@@ -253,7 +253,9 @@ class GrangerCausalityResult(Result):
                     "Variable Pair": f"{pair[0]} -> {pair[1]}",
                     "Min P-Value": details["Min P-Value"],
                     "Granger Causality": (
-                        "Yes" if details["Granger Causality"] else "No"
+                        "Yes"
+                        if details["Granger Causality"] == "Causality"
+                        else "No"
                     ),
                     "Significance Level": details["Significance Level"],
                 }
