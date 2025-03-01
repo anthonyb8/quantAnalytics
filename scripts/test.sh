@@ -20,17 +20,3 @@ if [ "$TYPE" = "integration" ]; then
 else
 	python -m unittest discover
 fi
-#
-# elif [ "$TYPE" = "integration" ]; then
-# 	if [ "$ENV" = "backtest" ]; then
-# 		echo "Run backtest integration test..."
-# 		python -m unittest discover tests.integration.backtest
-# 	elif [ "$ENV" = "live" ]; then
-# 		echo "Running live integration test..."
-# 		python -m unittest discover tests.integration.live
-# 	else
-# 		echo "$ENV: is invalid"
-# 	fi
-# else
-# 	echo "$TYPE: is invalid"
-# fi

@@ -36,7 +36,7 @@ class TestVectorizedBacktest(unittest.TestCase):
             self.initial_capital,
             self.risk_free_rate,
             "backtest.html",
-            "/Users/anthony/projects/midas/quant_analytics/tests/integration/backtest_unit_output",
+            "tests/integration/backtest_unit_output",
         )
 
     def test_run(self):

@@ -25,7 +25,7 @@ class Cointegrationzscore(BaseStrategy):
         self.zscore_lookback = 30
         self.entry_threshold = 2
         self.exit_threshold = 1
-        self.weights = {"HE.n.0": 2, "ZC.n.0": -3}  # update from research
+        self.weights = {"HE.v.0": 2, "ZC.v.0": -3}  # update from research
 
         # data
         self.last_signal = Signal.NoSignal
