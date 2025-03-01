@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "quant_analytics"
-version = "1.0.6"
+version = "1.0.7"
 description = "A financial performance and risk analysis library for quantitative research and backtesting."
 readme = "README.md"
 keywords = ["quantitative research", "backtesting", "finance", "risk analysis", "performance"]
